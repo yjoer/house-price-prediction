@@ -1,0 +1,303 @@
+---
+title: "Untitled"
+output: html_document
+date: "2023-05-20"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(caret)
+library(cluster)
+library(dplyr)
+library(e1071)
+library(factoextra)
+library(ggplot2)
+library(glmnet)
+library(lattice)
+library(randomForest)
+library(tidyr)
+library(viridis)
+library(xgboost)
+library(Metrics)
+library(Rtsne)
+```
+
+```{r}
+source("data_cleaning.r")
+```
+
+## Data Transformation/Scaling
+
+Split the numerical variables into features and the target variable.
+
+```{r}
+X_num <- subset(numerical_data, select = -c(SalePrice))
+y <- subset(numerical_data, select = c(SalePrice))$SalePrice
+```
+
+Log Transformation for numerical features.
+
+```{r}
+skewness_before <- sapply(X_num, function(x) {
+  e1071::skewness(x)
+})
+
+X_num_skewed <- skewness_before[abs(skewness_before) > 0.75]
+
+for (x in names(X_num_skewed)) {
+  # bc <- BoxCoxTrans(X_num[[x]], lambda = 0.15)
+  # X_num[[x]] <- predict(bc, X_num[[x]])
+  X_num[[x]] <- log1p(X_num[[x]])
+}
+
+skewness_after <- sapply(X_num, function(x) {
+  e1071::skewness(x)
+})
+
+data.frame(skewness_before, skewness_after)
+```
+
+Log Transformation for the target variable.
+
+```{r}
+skewness_before <- e1071::skewness(y)
+
+y_t <- log1p(y)
+
+skewness_after <- e1071::skewness(y_t)
+
+sprintf("Before: %f, After: %f", skewness_before, skewness_after)
+```
+
+Scaling
+
+```{r}
+X_num <- scale(X_num)
+```
+
+One-Hot Encoding for categorical variables.
+
+```{r}
+encoder <- dummyVars(~., data = categorical_data)
+
+X_cat <- predict(encoder, newdata = categorical_data)
+X_cat <- data.frame(X_cat)
+```
+
+Split into train and validation sets.
+
+```{r}
+X <- cbind(X_cat, X_num)
+
+train_idx <- createDataPartition(y_t, p = 0.7, list = F)
+X_train <- X[train_idx, ]
+y_train <- y_t[train_idx]
+
+X_val <- X[-train_idx, ]
+y_val <- y_t[-train_idx]
+```
+
+```{r}
+dim(X)
+length(y)
+
+dim(X_train)
+length(y_train)
+
+dim(X_val)
+length(y_val)
+
+names(X)
+```
+
+## Clustering
+
+### PCA
+
+### t-SNE
+
+```{r}
+tsne <- Rtsne(X)
+tsne_df <- data.frame(tsne)
+```
+
+```{r}
+dist_mat <- dist(tsne$Y, method = "euclidean")
+hclust_avg <- hclust(dist_mat, method = "average")
+
+dend <- as.dendrogram(hclust_avg)
+plot(dend)
+```
+
+```{r}
+k = 15
+cut_avg <- cutree(hclust_avg, k)
+tsne_df$cluster <- cut_avg
+
+getCentroid <- function(points) {
+  xy <- numeric(2)
+  
+  xy[1] = mean(points[, 1])
+  xy[2] = mean(points[, 2])
+
+  return(xy)
+}
+
+centroids = matrix(0, k, 2)
+for (i in unique(cut_avg)) centroids[i, ] <- getCentroid(tsne$Y[cut_avg == i,])
+```
+
+```{r}
+tsne_df
+
+ggplot(tsne_df, aes(x=Y.1, y=Y.2, color=y)) +
+  geom_point() +
+  scale_color_gradientn(colours = heat.colors(10))
+
+ggplot(data.frame(table(tsne_df$cluster)), aes(x=Var1, y=Freq)) +
+  geom_bar(stat = "identity") +
+  coord_flip()
+
+ggplot(tsne_df, aes(x=Y.1, y=Y.2, color=cluster)) +
+  geom_point() +
+  scale_color_viridis() +
+  scale_fill_viridis(discrete = T)
+
+fviz_silhouette(silhouette(cutree(hclust_avg, k = k), dist_mat))
+
+```
+
+## Baselines
+
+```{r}
+baselines_rmse <- list()
+```
+
+### Linear Regression
+
+```{r}
+linreg <- lm(SalePrice ~ ., data = cbind(X_train, SalePrice = y_train))
+y_pred <- predict(linreg, newdata = X_val)
+
+score <- rmse(y_pred, y_val)
+baselines_rmse$linear_regression = score
+score
+```
+
+### Lasso Regression
+
+```{r}
+lasso <- cv.glmnet(x = as.matrix(X_train), y = y_train, alpha = 1)
+y_pred <- predict(lasso, newx = as.matrix(X_val))
+
+score <- rmse(y_pred, y_val)
+baselines_rmse$lasso <- score
+score
+```
+
+### Ridge Regression
+
+```{r}
+ridge <- cv.glmnet(x = as.matrix(X_train), y = y_train, alpha = 0)
+y_pred <- predict(ridge, newx = as.matrix(X_val))
+
+score <- rmse(y_pred, y_val)
+baselines_rmse$ridge <- score
+score
+```
+
+### Elastic Net
+
+```{r}
+results <- data.frame()
+
+for (i in 0:20) {
+  elasticnet <- cv.glmnet(x = as.matrix(X_train), y = y_train, alpha = i/20)
+  y_pred <- predict(elasticnet, newx = as.matrix(X_val))
+
+  row <- data.frame(alpha = i/20, rmse = rmse(y_pred, y_val))
+  results <- rbind(results, row)
+}
+
+score <- min(results$rmse)
+baselines_rmse$elasticnet = score
+score
+```
+
+### K-Nearest Neighbors Regression
+
+```{r}
+knn <- knnreg(x = X_train, y = y_train)
+y_pred <- predict(knn, newdata = X_val)
+
+score <- rmse(y_pred, y_val)
+baselines_rmse$knn <- score
+score
+```
+
+### Support Vector Regression
+
+```{r}
+svr <- e1071::svm(SalePrice ~ ., data = cbind(X_train, SalePrice = y_train))
+y_pred <- predict(svr, newdata = X_val)
+
+score <- rmse(y_pred, y_val)
+baselines_rmse$svr <- score
+score
+```
+
+### Decision Tree
+
+```{r}
+dt = caret::train(x = X_train, y = y_train, method="rpart")
+y_pred = predict(dt, newdata = X_val)
+
+score <- rmse(y_pred, y_val)
+baselines_rmse$decision_tree <- score
+score
+```
+
+## Ensemble Learning
+
+### Random Forest
+
+```{r}
+rf <- randomForest(x = X_train, y = y_train, ntree = 1000, proximity = T)
+y_pred = predict(rf, newdata = X_val)
+
+score <- rmse(y_pred, y_val)
+score
+```
+
+```{r}
+varImpPlot(rf)
+```
+
+### Gradient-Boosted Trees
+
+```{r}
+dtrain <- xgb.DMatrix(data = as.matrix(X_train), label = y_train)
+dtest <- xgb.DMatrix(data = as.matrix(X_val), label = y_val)
+
+xgb <- xgboost(
+  booster="gbtree",
+  data = dtrain,
+  nrounds = 2500,
+  verbose = FALSE,
+  eval_metric = "rmse",
+  nthread = 8,
+  eta = 0.01,
+  gamma = 0.0468,
+  max_depth = 6,
+  min_child_weight = 1.41,
+  subsample = 0.769,
+  colsample_bytree = 0.283
+)
+y_pred <- predict(xgb, newdata = dtest)
+
+score <- rmse(y_pred, y_val)
+score
+```
