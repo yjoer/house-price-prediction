@@ -208,6 +208,20 @@ fviz_silhouette(silhouette(cutree(hclust_avg, k = k), dist_mat))
 
 ```{r}
 baselines_rmse <- list()
+actual_metrics <- list()
+
+metrics_fusion <- function(y_pred, y) {
+  y_pred_inv <- expm1(y_pred)
+  y_inv <- expm1(y)
+
+  a <- mae(y_pred_inv, y_inv)
+  b <- mape(y_pred_inv, y_inv)
+  c <- rmse(y_pred_inv, y_inv)
+  d <- mse(y_pred_inv, y_inv)
+  e <- R2(y_pred_inv, y_inv)
+
+  return(c("mae" = a, "mape" = b, "rmse" = c, "mse" = d, "r2" = e))
+}
 ```
 
 ### Linear Regression
@@ -219,6 +233,7 @@ y_pred <- predict(linreg, newdata = X_val)
 score <- rmse(y_pred, y_val)
 baselines_rmse$linear_regression = score
 score
+actual_metrics$linear_regression <- metrics_fusion(y_pred, y_val)
 ```
 
 ### Lasso Regression
@@ -230,6 +245,7 @@ y_pred <- predict(lasso, newx = as.matrix(X_val))
 score <- rmse(y_pred, y_val)
 baselines_rmse$lasso <- score
 score
+actual_metrics$lasso <- metrics_fusion(y_pred, y_val)
 ```
 
 ### Ridge Regression
@@ -241,6 +257,7 @@ y_pred <- predict(ridge, newx = as.matrix(X_val))
 score <- rmse(y_pred, y_val)
 baselines_rmse$ridge <- score
 score
+actual_metrics$ridge <- metrics_fusion(y_pred, y_val)
 ```
 
 ### Elastic Net
@@ -259,6 +276,7 @@ for (i in 0:20) {
 score <- min(results$rmse)
 baselines_rmse$elasticnet = score
 score
+actual_metrics$elasticnet <- metrics_fusion(y_pred, y_val)
 ```
 
 ### K-Nearest Neighbors Regression
@@ -270,6 +288,7 @@ y_pred <- predict(knn, newdata = X_val)
 score <- rmse(y_pred, y_val)
 baselines_rmse$knn <- score
 score
+actual_metrics$knn <- metrics_fusion(y_pred, y_val)
 ```
 
 ### Support Vector Regression
@@ -281,6 +300,7 @@ y_pred <- predict(svr, newdata = X_val)
 score <- rmse(y_pred, y_val)
 baselines_rmse$svr <- score
 score
+actual_metrics$svr <- metrics_fusion(y_pred, y_val)
 ```
 
 ### Decision Tree
@@ -292,9 +312,15 @@ y_pred = predict(dt, newdata = X_val)
 score <- rmse(y_pred, y_val)
 baselines_rmse$decision_tree <- score
 score
+actual_metrics$decision_tree <- metrics_fusion(y_pred, y_val)
 ```
 
 ## Ensemble Learning
+
+```{r}
+ensemble_rmse <- list()
+ensemble_actual_metrics <- list()
+```
 
 ### Random Forest
 
@@ -303,7 +329,9 @@ rf <- randomForest(x = X_train, y = y_train, ntree = 1000, proximity = T)
 y_pred = predict(rf, newdata = X_val)
 
 score <- rmse(y_pred, y_val)
+ensemble_rmse$random_forest <- score
 score
+ensemble_actual_metrics$random_forest <- metrics_fusion(y_pred, y_val)
 ```
 
 ```{r}
@@ -333,7 +361,9 @@ xgb <- xgboost(
 y_pred <- predict(xgb, newdata = dtest)
 
 score <- rmse(y_pred, y_val)
+ensemble_rmse$xgboost <- score
 score
+ensemble_actual_metrics$xgboost <- metrics_fusion(y_pred, y_val)
 ```
 
 ```{r}
@@ -363,7 +393,9 @@ lgb <- lgb.train(
 y_pred <- predict(lgb, data = as.matrix(X_val))
 
 score <- rmse(y_pred, y_val)
+ensemble_rmse$lightgbm <- score
 score
+ensemble_actual_metrics$lightgbm <- metrics_fusion(y_pred, y_val)
 ```
 
 ```{r}
@@ -386,7 +418,9 @@ catb <- catboost.train(
 y_pred <- catboost.predict(catb, test_pool)
 
 score <- rmse(y_pred, y_val)
+ensemble_rmse$catboost <- score
 score
+ensemble_actual_metrics$catboost <- metrics_fusion(y_pred, y_val)
 ```
 
 ## Association Rule Mining on Housing Characteristics
@@ -411,7 +445,9 @@ summary(rules)
 ```{r}
 inspect(head(rules, n = 3, by = "lift"))
 ```
+
 ### Comparison
+
 ```{r}
 # Convert baselines_rmse list to a data frame
 print(baselines_rmse)
@@ -423,4 +459,22 @@ ggplot(df, aes(x = models, y = rmse)) +
   ylab("RMSE") +
   ggtitle("Baseline RMSE") +
   theme_minimal()
+
+print(ensemble_rmse)
+df <- data.frame(models = names(ensemble_rmse), rmse = unlist(ensemble_rmse))
+# Create the bar chart using ggplot
+ggplot(df, aes(x = models, y = rmse)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  xlab("Models") +
+  ylab("RMSE") +
+  ggtitle("Ensemble RMSE") +
+  theme_minimal()
+```
+
+```{r}
+data.frame(t(data.frame(actual_metrics))) %>% arrange(desc(r2))
+```
+
+```{r}
+data.frame(t(data.frame(ensemble_actual_metrics))) %>% arrange(desc(r2))
 ```
