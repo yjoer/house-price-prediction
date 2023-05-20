@@ -18,6 +18,7 @@ library(factoextra)
 library(ggplot2)
 library(glmnet)
 library(lattice)
+library(lightgbm)
 library(randomForest)
 library(tidyr)
 library(viridis)
@@ -329,6 +330,36 @@ xgb <- xgboost(
   colsample_bytree = 0.283
 )
 y_pred <- predict(xgb, newdata = dtest)
+
+score <- rmse(y_pred, y_val)
+score
+```
+
+```{r}
+lgb_train <- lgb.Dataset(data = as.matrix(X_train), label = y_train)
+lgb_test <- lgb.Dataset(data = as.matrix(X_val), label = y_val)
+
+params <- list(
+  objective = "regression",
+  metric = "rmse",
+  boosting_type = "gbdt",
+  num_boost_round = 100,
+  num_leaves = 31,
+  learning_rate = 0.1,
+  feature_fraction = 0.9,
+  bagging_fraction = 0.8,
+  bagging_freq = 5
+)
+
+lgb <- lgb.train(
+  params = params,
+  data = lgb_train,
+  valids = list(test = lgb_test),
+  early_stopping_rounds = 10,
+  verbose = 0
+)
+
+y_pred <- predict(lgb, data = as.matrix(X_val))
 
 score <- rmse(y_pred, y_val)
 score
