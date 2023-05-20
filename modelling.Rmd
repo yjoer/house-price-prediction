@@ -195,8 +195,8 @@ ggplot(tsne_df, aes(x=Y.1, y=Y.2, color=cluster)) +
   geom_point() +
   scale_color_viridis() +
   scale_fill_viridis(discrete = T) +
-  geom_point(data = data.frame(centroids), aes(x=X1, y=X2), color="white") +
-  geom_text(data = data.frame(centroids), aes(x=X1, y=X2, label = 1:k, color="black"))
+  geom_point(data = data.frame(centroids), aes(x=X1, y=X2), color="black", fill="white", shape=21, size=8) +
+  geom_text(data = data.frame(centroids), aes(x=X1, y=X2, label=1:k), color="black")
 
 fviz_silhouette(silhouette(cutree(hclust_avg, k = k), dist_mat))
 
