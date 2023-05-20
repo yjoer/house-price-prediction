@@ -9,6 +9,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r}
+library(arules)
 library(caret)
 library(cluster)
 library(dplyr)
@@ -300,4 +301,27 @@ y_pred <- predict(xgb, newdata = dtest)
 
 score <- rmse(y_pred, y_val)
 score
+```
+
+## Association Rule Mining on Housing Characteristics
+
+```{r}
+transactions <- transactions(categorical_data)
+summary(transactions)
+```
+
+```{r}
+inspect(head(transactions, n = 1))
+```
+
+```{r}
+rules <- apriori(transactions, parameter = list(support = 0.1, confidence = 0.8))
+```
+
+```{r}
+summary(rules)
+```
+
+```{r}
+inspect(head(rules, n = 3, by = "lift"))
 ```
