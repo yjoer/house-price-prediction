@@ -117,6 +117,35 @@ names(X)
 ## Clustering
 
 ### PCA
+```{r}
+# Load the necessary libraries
+library(stats)
+library(factoextra)
+
+# Perform PCA on the data matrix
+pca_result <- prcomp(X)
+
+# Extract the principal components
+principal_components <- as.data.frame(pca_result$x)
+
+# Determine the optimal number of clusters using the elbow method
+fviz_nbclust(principal_components, kmeans, method = "wss")
+
+k <- 3
+# Perform K-means clustering on the principal components
+kmeans_result <- kmeans(principal_components, centers = k)
+cluster_assignments <- kmeans_result$cluster
+print(cluster_assignments)
+
+# Add the cluster assignments to the principal components data
+principal_components$cluster <- as.factor(cluster_assignments)
+
+ggplot(principal_components, aes(PC1, PC2, color = cluster)) +
+  geom_point() +
+  labs(x = "Principal Component 1", y = "Principal Component 2") +
+  scale_color_discrete(name = "Cluster") +
+ theme_minimal()
+```
 
 ### t-SNE
 
@@ -326,4 +355,17 @@ summary(rules)
 
 ```{r}
 inspect(head(rules, n = 3, by = "lift"))
+```
+### Comparison
+```{r}
+# Convert baselines_rmse list to a data frame
+print(baselines_rmse)
+df <- data.frame(models = names(baselines_rmse), rmse = unlist(baselines_rmse))
+# Create the bar chart using ggplot
+ggplot(df, aes(x = models, y = rmse)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  xlab("Models") +
+  ylab("RMSE") +
+  ggtitle("Baseline RMSE") +
+  theme_minimal()
 ```
