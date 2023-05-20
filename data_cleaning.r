@@ -13,7 +13,7 @@ library(mlr)
 getwd()
 
 # change working directory
-setwd("C:/Users/peili/Downloads/Data Cleaning")
+# setwd("C:/Users/peili/Downloads/Data Cleaning")
 
 # Import Dataset
 dataset <- read.csv("train.csv")
@@ -209,12 +209,12 @@ grid.arrange(grobs = plots_rest23attribute, ncol = 5)
 
 # Encode Categorical Data
 # Create a copy of the dataset
-dataset_encode <- dataset
+# dataset_encode <- dataset
 
-for (col in colnames(dataset_encode)) {
-  if (is.factor(dataset_encode[[col]]) | is.character(dataset_encode[[col]])) {
-    encoded_col <- predict(dummyVars(formula = as.formula(paste0("~", col)), data = dataset_encode), newdata = dataset_encode)
-    dataset_encode[[col]] <- encoded_col
-  }
-}
+# for (col in colnames(dataset_encode)) {
+#   if (is.factor(dataset_encode[[col]]) | is.character(dataset_encode[[col]])) {
+#     encoded_col <- predict(dummyVars(formula = as.formula(paste0("~", col)), data = dataset_encode), newdata = dataset_encode)
+#     dataset_encode[[col]] <- encoded_col
+#   }
+# }
 
