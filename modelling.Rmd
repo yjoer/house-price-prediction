@@ -11,6 +11,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r}
 library(arules)
 library(caret)
+library(catboost)
 library(cluster)
 library(dplyr)
 library(e1071)
@@ -360,6 +361,29 @@ lgb <- lgb.train(
 )
 
 y_pred <- predict(lgb, data = as.matrix(X_val))
+
+score <- rmse(y_pred, y_val)
+score
+```
+
+```{r}
+learn_pool <- catboost.load_pool(data = X_train, label = y_train)
+test_pool <- catboost.load_pool(data = X_val, label = y_val)
+
+params <- list(
+  loss_function = "RMSE",
+  iterations = 100,
+  learning_rate = 0.1,
+  depth = 10
+)
+
+catb <- catboost.train(
+  params = params,
+  learn_pool = learn_pool,
+  test_pool = test_pool
+)
+
+y_pred <- catboost.predict(catb, test_pool)
 
 score <- rmse(y_pred, y_val)
 score
