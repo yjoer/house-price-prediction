@@ -442,7 +442,7 @@ inspect(head(transactions, n = 1))
 ```
 
 ```{r}
-rules <- apriori(transactions, parameter = list(support = 0.1, confidence = 0.8))
+rules <- apriori(transactions, parameter = list(support = 0.95, confidence = 0.95))
 ```
 
 ```{r}
@@ -450,7 +450,85 @@ summary(rules)
 ```
 
 ```{r}
-inspect(head(rules, n = 3, by = "lift"))
+con <- file("data_description.txt", open = "r")
+
+column_dictionary <- list()
+value_dictionary <- list()
+
+repeat {
+  line <- readLines(con, n = 1)
+
+  if (length(line) == 0) {
+    break
+  }
+
+  first_character <- substr(line, 1, 1)
+
+  if (first_character == "") {
+    next
+  }
+
+  if (first_character != " ") {
+    column_name <- sub(":.*", "", line)
+    column_description <- trimws(sub(".*:", "", line))
+
+    column_dictionary[[column_name]] <- column_description
+    value_dictionary[[column_name]] <- list()
+  } else {
+    pairs <- unlist(strsplit(line, "\t"))
+    key <- trimws(pairs[1])
+    value <- trimws(pairs[2])
+
+    value_dictionary[[column_name]][[key]] <- value
+  }
+}
+
+close(con)
+```
+
+```{r}
+rules_top_ten_df <- data.frame(
+  lhs = labels(lhs(rules)),
+  rhs = labels(rhs(rules)),
+  rules@quality
+) %>% arrange(desc(lift)) %>% head(n = 20)
+```
+
+```{r}
+for (i in 1:nrow(rules_top_ten_df)) {
+  row <- rules_top_ten_df[i, ]
+
+  explanation <- ""
+  lhs <- unlist(strsplit(gsub('^.|.$', '', row["lhs"]), ","))
+
+  for (i in 1:length(lhs)) {
+    pair <- unlist(strsplit(lhs[i], "="))
+    key <- pair[1]
+    value <- pair[2]
+
+    key_t <- column_dictionary[[key]]
+    value_t <- value_dictionary[[key]][[value]]
+
+    if (i == 1) {
+      explanation <- paste("IF", key_t, "=", value_t)
+    } else {
+      explanation <- paste(explanation, "AND", key_t, "=", value_t)
+    }
+  }
+
+  rhs <- unlist(strsplit(gsub('^.|.$', '', row["rhs"]), "="))
+  key <- rhs[1]
+  value <- rhs[2]
+
+  key_t <- column_dictionary[[key]]
+  value_t <- value_dictionary[[key]][[value]]
+
+  confidence_pct <- format(round(row["confidence"] * 100, 2), 2)
+
+  explanation <- paste(explanation, "THEN", key_t, "=", value_t, "(Confidence:", paste0(confidence_pct, "%)"))
+  print(explanation)
+  cat("\n")
+}
 ```
 
 ### Comparison
