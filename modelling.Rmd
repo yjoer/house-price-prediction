@@ -99,8 +99,15 @@ train_idx <- createDataPartition(y_t, p = 0.7, list = F)
 X_train <- X[train_idx, ]
 y_train <- y_t[train_idx]
 
-X_val <- X[-train_idx, ]
-y_val <- y_t[-train_idx]
+X_test <- X[-train_idx, ]
+y_test <- y_t[-train_idx]
+
+train_val_idx <- createDataPartition(y_train, p = 0.8, list = FALSE)
+X_train <- X_train[train_val_idx, ]
+y_train <- y_train[train_val_idx]
+
+X_val <- X_train[-train_val_idx, ]
+y_val <- y_train[-train_val_idx]
 ```
 
 ```{r}
