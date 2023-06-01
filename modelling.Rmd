@@ -109,6 +109,9 @@ y_train <- y_train[train_val_idx]
 
 X_val <- X_train[-train_val_idx, ]
 y_val <- y_train[-train_val_idx]
+
+X_train_val <- rbind(X_train, X_val)
+y_train_val <- c(y_train, y_val)
 ```
 
 ```{r}
@@ -216,7 +219,7 @@ fviz_silhouette(silhouette(cutree(hclust_avg, k = k), dist_mat))
 
 ```{r}
 baselines_rmse <- list()
-actual_metrics <- list()
+
 baselines_rmse_test <- list()
 actual_metrics_test <- list()
 
@@ -237,15 +240,21 @@ metrics_fusion <- function(y_pred, y) {
 ### Linear Regression
 
 ```{r}
-linreg <- lm(SalePrice ~ ., data = cbind(X_train, SalePrice = y_train))
+linreg_tc <- trainControl(method = "cv", number = 5)
+linreg_cv <- caret::train(
+  SalePrice ~ .,
+  data = cbind(X_train_val, SalePrice = y_train_val),
+  trControl = linreg_tc,
+  method = "lm"
+)
 
 # Validation predictions and metrics
-y_pred_val <- predict(linreg, newdata = X_val)
-score_val <- rmse(y_pred_val, y_val)
+score_val <- linreg_cv$results$RMSE
 baselines_rmse$linear_regression <- score_val
-actual_metrics$linear_regression <- metrics_fusion(y_pred_val, y_val)
 
 # Test predictions and metrics
+linreg <- lm(SalePrice ~ ., data = cbind(X_train_val, SalePrice = y_train_val))
+
 y_pred_test <- predict(linreg, newdata = X_test)
 score_test <- rmse(y_pred_test, y_test)
 baselines_rmse_test$linear_regression <- score_test
@@ -259,13 +268,11 @@ score_test
 ### Lasso Regression
 
 ```{r}
-lasso <- cv.glmnet(x = as.matrix(X_train), y = y_train, alpha = 1)
+lasso <- cv.glmnet(x = as.matrix(X_train_val), y = y_train_val, alpha = 1)
 
 # Validation predictions and metrics
-y_pred_val <- predict(lasso, newx = as.matrix(X_val))
-score_val <- rmse(y_pred_val, y_val)
+score_val <- mean(sqrt(lasso$cvm))
 baselines_rmse$lasso <- score_val
-actual_metrics$lasso <- metrics_fusion(y_pred_val, y_val)
 
 # Test predictions and metrics
 y_pred_test <- predict(lasso, newx = as.matrix(X_test))
@@ -281,13 +288,11 @@ score_test
 ### Ridge Regression
 
 ```{r}
-ridge <- cv.glmnet(x = as.matrix(X_train), y = y_train, alpha = 0)
+ridge <- cv.glmnet(x = as.matrix(X_train_val), y = y_train_val, alpha = 0)
 
 # Validation predictions and metrics
-y_pred_val <- predict(ridge, newx = as.matrix(X_val))
-score_val <- rmse(y_pred_val, y_val)
+score_val <- mean(sqrt(ridge$cvm))
 baselines_rmse$ridge <- score_val
-actual_metrics$ridge <- metrics_fusion(y_pred_val, y_val)
 
 # Test predictions and metrics
 y_pred_test <- predict(ridge, newx = as.matrix(X_test))
@@ -306,22 +311,24 @@ score_test
 results <- data.frame()
 
 for (i in 0:20) {
-  elasticnet <- cv.glmnet(x = as.matrix(X_train), y = y_train, alpha = i/20)
-  y_pred_val <- predict(elasticnet, newx = as.matrix(X_val))
-  y_pred_test <- predict(elasticnet, newx = as.matrix(X_test))
+  elasticnet <- cv.glmnet(x = as.matrix(X_train_val), y = y_train_val, alpha = i/20)
 
-  row <- data.frame(alpha = i/20, rmse_val = rmse(y_pred_val, y_val), rmse_test = rmse(y_pred_test, y_test))
+  row <- data.frame(alpha = i/20, rmse_val = mean(sqrt(elasticnet$cvm)))
   results <- rbind(results, row)
 }
 
 best_alpha <- results$alpha[which.min(results$rmse_val)]
+
+# Validation predictions and metrics
 score_val <- min(results$rmse_val)
-score_test <- results$rmse_test[which.min(results$rmse_val)]
-
 baselines_rmse$elasticnet <- score_val
-baselines_rmse_test$elasticnet <- score_test
 
-actual_metrics$elasticnet <- metrics_fusion(y_pred_val, y_val)
+# Test predictions and metrics
+elasticnet <- cv.glmnet(x = as.matrix(X_train_val), y = y_train_val, alpha = best_alpha)
+
+y_pred_test <- predict(elasticnet, newx = as.matrix(X_test))
+score_test <- rmse(y_pred_test, y_test)
+baselines_rmse_test$elasticnet <- score_test
 actual_metrics_test$elasticnet <- metrics_fusion(y_pred_test, y_test)
 
 # Display scores
@@ -333,14 +340,22 @@ score_test
 ### K-Nearest Neighbors Regression
 
 ```{r}
-knn <- knnreg(x = X_train, y = y_train)
-y_pred_val <- predict(knn, newdata = X_val)
-y_pred_test <- predict(knn, newdata = X_test)
+knn_tc <- trainControl(method = "cv", number = 5)
+knn_cv <- caret::train(
+  SalePrice ~ .,
+  data = cbind(X_train_val, SalePrice = y_train_val),
+  trControl = knn_tc,
+  method = "knn"
+)
 
-score_val <- rmse(y_pred_val, y_val)
+# Validation predictions and metrics
+score_val <- mean(knn_cv$results$RMSE)
 baselines_rmse$knn <- score_val
-actual_metrics$knn <- metrics_fusion(y_pred_val, y_val)
 
+# Test predictions and metrics
+knn <- knnreg(x = X_train_val, y = y_train_val)
+
+y_pred_test <- predict(knn, newdata = X_test)
 score_test <- rmse(y_pred_test, y_test)
 baselines_rmse_test$knn <- score_test
 actual_metrics_test$knn <- metrics_fusion(y_pred_test, y_test)
@@ -353,14 +368,22 @@ score_test
 ### Support Vector Regression
 
 ```{r}
-svr <- e1071::svm(SalePrice ~ ., data = cbind(X_train, SalePrice = y_train))
-y_pred_val <- predict(svr, newdata = X_val)
-y_pred_test <- predict(svr, newdata = X_test)
+svr_tc <- trainControl(method = "cv", number = 5)
+svr_cv <- caret::train(
+  SalePrice ~ .,
+  data = cbind(X_train_val, SalePrice = y_train_val),
+  trControl = svr_tc,
+  method = "svmLinear2"
+)
 
-score_val <- rmse(y_pred_val, y_val)
+# Validation predictions and metrics
+score_val <- mean(svr_cv$results$RMSE)
 baselines_rmse$svr <- score_val
-actual_metrics$svr <- metrics_fusion(y_pred_val, y_val)
 
+# Test predictions and metrics
+svr <- e1071::svm(SalePrice ~ ., data = cbind(X_train_val, SalePrice = y_train_val))
+
+y_pred_test <- predict(svr, newdata = X_test)
 score_test <- rmse(y_pred_test, y_test)
 baselines_rmse_test$svr <- score_test
 actual_metrics_test$svr <- metrics_fusion(y_pred_test, y_test)
@@ -373,14 +396,22 @@ score_test
 ### Decision Tree
 
 ```{r}
-dt <- caret::train(x = X_train, y = y_train, method = "rpart")
-y_pred_val <- predict(dt, newdata = X_val)
-y_pred_test <- predict(dt, newdata = X_test)
+dt_tc <- trainControl(method = "cv", number = 5)
+dt_cv <- caret::train(
+  SalePrice ~ .,
+  data = cbind(X_train_val, SalePrice = y_train_val),
+  trControl = dt_tc,
+  method = "rpart"
+)
 
-score_val <- rmse(y_pred_val, y_val)
+# Validation predictions and metrics
+score_val <- mean(dt$results$RMSE)
 baselines_rmse$decision_tree <- score_val
-actual_metrics$decision_tree <- metrics_fusion(y_pred_val, y_val)
 
+# Test predictions and metrics
+dt <- caret::train(x = X_train_val, y = y_train_val, method = "rpart")
+
+y_pred_test <- predict(dt, newdata = X_test)
 score_test <- rmse(y_pred_test, y_test)
 baselines_rmse_test$decision_tree <- score_test
 actual_metrics_test$decision_tree <- metrics_fusion(y_pred_test, y_test)
@@ -394,7 +425,7 @@ score_test
 
 ```{r}
 ensemble_rmse <- list()
-ensemble_actual_metrics <- list()
+
 ensemble_rmse_test <- list()
 ensemble_actual_metrics_test <- list()
 ```
@@ -402,15 +433,21 @@ ensemble_actual_metrics_test <- list()
 ### Random Forest
 
 ```{r}
-rf <- randomForest(x = X_train, y = y_train, ntree = 1000, proximity = TRUE)
+rf_tc <- trainControl(method = "cv", number = 5)
+rf_cv <- caret::train(
+  SalePrice ~ .,
+  data = cbind(X_train_val, SalePrice = y_train_val),
+  trControl = rf_tc,
+  method = "rf"
+)
 
 # Validation predictions and metrics
-y_pred_val <- predict(rf, newdata = X_val)
-score_val <- rmse(y_pred_val, y_val)
+score_val <- mean(rf_cv$results$RMSE)
 ensemble_rmse$random_forest <- score_val
-ensemble_actual_metrics$random_forest <- metrics_fusion(y_pred_val, y_val)
 
 # Test predictions and metrics
+rf <- randomForest(x = X_train_val, y = y_train_val, proximity = T)
+
 y_pred_test <- predict(rf, newdata = X_test)
 score_test <- rmse(y_pred_test, y_test)
 ensemble_rmse_test$random_forest <- score_test
@@ -422,13 +459,21 @@ score_test
 ```
 
 ```{r}
-varImpPlot(rf)
+rf_df <- data.frame(rf$importance) %>%
+  mutate(Feature = rownames(rf$importance)) %>%
+  arrange(desc(IncNodePurity)) %>%
+  head(30)
+
+rf_df
+ggplot(data = rf_df, aes(x = reorder(Feature, IncNodePurity), y = IncNodePurity)) +
+  geom_bar(stat = "identity") +
+  coord_flip()
 ```
 
 ### Gradient-Boosted Trees
 
 ```{r}
-dtrain_val <- xgb.DMatrix(data = as.matrix(rbind(X_train, X_val)), label = c(y_train, y_val))
+dtrain_val <- xgb.DMatrix(data = as.matrix(X_train_val), label = y_train_val)
 dtest <- xgb.DMatrix(data = as.matrix(X_test), label = y_test)
 
 xgb_params = list(
@@ -476,6 +521,15 @@ ensemble_actual_metrics_test$xgboost_test <- metrics_fusion(y_pred_test, y_test)
 # Display scores
 score_val
 score_test
+```
+
+```{r}
+xgb_df <- xgb.importance(model = xgb) %>% head(30)
+
+xgb_df
+ggplot(data = xgb_df, aes(x = reorder(Feature, Gain), y = Gain)) +
+  geom_bar(stat = "identity") +
+  coord_flip()
 ```
 
 ```{r}
@@ -530,9 +584,14 @@ run <- mbo(
   show.info = TRUE
 )
 ```
+
 ```{r}
-lgb_train <- lgb.Dataset(data = as.matrix(X_train), label = y_train)
-lgb_val <- lgb.Dataset(data = as.matrix(X_val), label = y_val)
+# Best parameters
+run$x
+```
+
+```{r}
+lgb_train_val <- lgb.Dataset(data = as.matrix(X_train_val), label = y_train_val)
 lgb_test <- lgb.Dataset(data = as.matrix(X_test), label = y_test)
 
 params <- list(
@@ -540,28 +599,31 @@ params <- list(
   metric = "rmse",
   boosting_type = "gbdt",
   num_boost_round = 100,
-  num_leaves = 31,
+  num_leaves = 15,
   learning_rate = 0.1,
   feature_fraction = 0.9,
   bagging_fraction = 0.8,
   bagging_freq = 5
 )
 
-lgb <- lgb.train(
+lgb_cv <- lgb.cv(
   params = params,
-  data = lgb_train,
-  valids = list(val = lgb_val, test = lgb_test),
-  early_stopping_rounds = 10,
+  data = lgb_train_val,
+  early_stopping_rounds = 25,
   verbose = 0
 )
 
 # Validation predictions and metrics
-y_pred_val <- predict(lgb, data = as.matrix(X_val))
-score_val <- rmse(y_pred_val, y_val)
+score_val <- min(unlist(lgb_cv$record_evals$valid$rmse$eval))
 ensemble_rmse$lightgbm <- score_val
-ensemble_actual_metrics$lightgbm <- metrics_fusion(y_pred_val, y_val)
 
 # Test predictions and metrics
+lgb <- lgb.train(
+  params = params,
+  data = lgb_train_val,
+  verbose = 0
+)
+
 y_pred_test <- predict(lgb, data = as.matrix(X_test))
 score_test <- rmse(y_pred_test, y_test)
 ensemble_rmse_test$lightgbm <- score_test
@@ -573,30 +635,42 @@ score_test
 ```
 
 ```{r}
-learn_pool <- catboost.load_pool(data = X_train, label = y_train)
-val_pool <- catboost.load_pool(data = X_val, label = y_val)
+lgb_df <- lgb.importance(model = lgb) %>% head(30)
+
+lgb_df
+ggplot(data = xgb_df, aes(x = reorder(Feature, Gain), y = Gain)) +
+  geom_bar(stat = "identity") +
+  coord_flip()
+```
+
+```{r}
+train_val_pool <- catboost.load_pool(data = X_train_val, label = y_train_val)
 test_pool <- catboost.load_pool(data = X_test, label = y_test)
 
 params <- list(
   loss_function = "RMSE",
-  iterations = 100,
-  learning_rate = 0.1,
-  depth = 10
+  iterations = 10000,
+  learning_rate = 0.01,
+  metric_period = 1000
 )
 
-catb <- catboost.train(
+catb_cv <- catboost.cv(
+  train_val_pool,
   params = params,
-  data = learn_pool,
-  eval_set = list(val = val_pool, test = test_pool)
+  fold_count = 5,
+  early_stopping_rounds = 25
 )
 
 # Validation predictions and metrics
-y_pred_val <- catboost.predict(catb, val_pool)
-score_val <- rmse(y_pred_val, y_val)
+score_val <- min(catb_cv$test.RMSE.mean)
 ensemble_rmse$catboost <- score_val
-ensemble_actual_metrics$catboost <- metrics_fusion(y_pred_val, y_val)
 
 # Test predictions and metrics
+catb <- catboost.train(
+  params = params,
+  learn_pool = train_val_pool
+)
+
 y_pred_test <- catboost.predict(catb, test_pool)
 score_test <- rmse(y_pred_test, y_test)
 ensemble_rmse_test$catboost <- score_test
@@ -605,6 +679,20 @@ ensemble_actual_metrics_test$catboost <- metrics_fusion(y_pred_test, y_test)
 # Display scores
 score_val
 score_test
+```
+
+```{r}
+catb_df <- data.frame(catboost.get_feature_importance(catb))
+catb_df <- catb_df %>%
+  mutate(Feature = rownames(catb_df)) %>%
+  rename(Importance = catboost.get_feature_importance.catb.) %>%
+  arrange(desc(Importance)) %>%
+  head(30)
+
+catb_df
+ggplot(data = catb_df, aes(x = reorder(Feature, Importance), y = Importance)) +
+  geom_bar(stat = "identity") +
+  coord_flip()
 ```
 
 ## Association Rule Mining on Housing Characteristics
@@ -711,56 +799,58 @@ for (i in 1:nrow(rules_top_ten_df)) {
 ### Comparison
 
 ```{r}
-# Convert baselines_rmse list to a data frame
-print(baselines_rmse)
+# Plot RMSE for baseline models
 df <- data.frame(models = names(baselines_rmse), rmse = unlist(baselines_rmse))
-# Create the bar chart using ggplot
+df
+
 ggplot(df, aes(x = models, y = rmse)) +
   geom_bar(stat = "identity", fill = "steelblue") +
   xlab("Models") +
   ylab("RMSE") +
+  ylim(0, 0.35) +
   ggtitle("Baseline RMSE") +
   theme_minimal()
 
-print(ensemble_rmse)
+# Plot RMSE for ensemble models
 df <- data.frame(models = names(ensemble_rmse), rmse = unlist(ensemble_rmse))
-# Create the bar chart using ggplot
+df
+
 ggplot(df, aes(x = models, y = rmse)) +
   geom_bar(stat = "identity", fill = "steelblue") +
   xlab("Models") +
   ylab("RMSE") +
+  ylim(0, 0.35) +
   ggtitle("Ensemble RMSE") +
   theme_minimal()
 ```
+
 ```{r}
-# Convert baselines_rmse_test list to a data frame
-print(baselines_rmse_test)
+# Plot RMSE for baseline models on the test set
 df <- data.frame(models = names(baselines_rmse_test), rmse = unlist(baselines_rmse_test))
-# Create the bar chart using ggplot
+df
+
 ggplot(df, aes(x = models, y = rmse)) +
   geom_bar(stat = "identity", fill = "steelblue") +
   xlab("Models") +
   ylab("RMSE") +
+  ylim(0, 0.35) +
   ggtitle("Baseline RMSE") +
   theme_minimal()
 
-print(ensemble_rmse_test)
+# Plot RMSE for ensemble models on the test set
 df <- data.frame(models = names(ensemble_rmse_test), rmse = unlist(ensemble_rmse_test))
-# Create the bar chart using ggplot
+df
+
 ggplot(df, aes(x = models, y = rmse)) +
   geom_bar(stat = "identity", fill = "steelblue") +
   xlab("Models") +
   ylab("RMSE") +
+  ylim(0, 0.35) +
   ggtitle("Ensemble RMSE") +
   theme_minimal()
 ```
 
 ```{r}
-data.frame(t(data.frame(actual_metrics))) %>% arrange(desc(r2))
 data.frame(t(data.frame(actual_metrics_test))) %>% arrange(desc(r2))
-```
-
-```{r}
-data.frame(t(data.frame(ensemble_actual_metrics))) %>% arrange(desc(r2))
 data.frame(t(data.frame(ensemble_actual_metrics_test))) %>% arrange(desc(r2))
 ```
