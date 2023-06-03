@@ -27,6 +27,7 @@ library(viridis)
 library(xgboost)
 library(Metrics)
 library(Rtsne)
+library(DiceKriging)
 ```
 
 ```{r}
@@ -448,10 +449,10 @@ ensemble_rmse$random_forest <- score_val
 # Test predictions and metrics
 rf <- randomForest(x = X_train_val, y = y_train_val, proximity = T)
 
-y_pred_test <- predict(rf, newdata = X_test)
-score_test <- rmse(y_pred_test, y_test)
+y_pred_test_rf <- predict(rf, newdata = X_test)
+score_test <- rmse(y_pred_test_rf, y_test)
 ensemble_rmse_test$random_forest <- score_test
-ensemble_actual_metrics_test$random_forest <- metrics_fusion(y_pred_test, y_test)
+ensemble_actual_metrics_test$random_forest <- metrics_fusion(y_pred_test_rf, y_test)
 
 # Display scores
 score_val
@@ -513,10 +514,10 @@ xgb <- xgboost(
   early_stopping_rounds = 25
 )
 
-y_pred_test <- predict(xgb, newdata = dtest)
-score_test <- rmse(y_pred_test, y_test)
+y_pred_test_xgb <- predict(xgb, newdata = dtest)
+score_test <- rmse(y_pred_test_xgb, y_test)
 ensemble_rmse_test$xgboost_test <- score_test
-ensemble_actual_metrics_test$xgboost_test <- metrics_fusion(y_pred_test, y_test)
+ensemble_actual_metrics_test$xgboost_test <- metrics_fusion(y_pred_test_xgb, y_test)
 
 # Display scores
 score_val
@@ -573,6 +574,7 @@ objective_fn <- makeSingleObjectiveFunction(
   minimize = TRUE
 )
 
+#Train model
 design <- generateDesign(n = 1000, par.set = getParamSet(objective_fn), fun = lhs::randomLHS)
 control <- makeMBOControl() %>% setMBOControlTermination(., iters = 10)
 
@@ -624,10 +626,10 @@ lgb <- lgb.train(
   verbose = 0
 )
 
-y_pred_test <- predict(lgb, data = as.matrix(X_test))
-score_test <- rmse(y_pred_test, y_test)
+y_pred_test_lgb <- predict(lgb, data = as.matrix(X_test))
+score_test <- rmse(y_pred_test_lgb, y_test)
 ensemble_rmse_test$lightgbm <- score_test
-ensemble_actual_metrics_test$lightgbm <- metrics_fusion(y_pred_test, y_test)
+ensemble_actual_metrics_test$lightgbm <- metrics_fusion(y_pred_test_lgb, y_test)
 
 # Display scores
 score_val
@@ -671,10 +673,10 @@ catb <- catboost.train(
   learn_pool = train_val_pool
 )
 
-y_pred_test <- catboost.predict(catb, test_pool)
-score_test <- rmse(y_pred_test, y_test)
+y_pred_test_catboost <- catboost.predict(catb, test_pool)
+score_test <- rmse(y_pred_test_catboost, y_test)
 ensemble_rmse_test$catboost <- score_test
-ensemble_actual_metrics_test$catboost <- metrics_fusion(y_pred_test, y_test)
+ensemble_actual_metrics_test$catboost <- metrics_fusion(y_pred_test_catboost, y_test)
 
 # Display scores
 score_val
@@ -853,4 +855,31 @@ ggplot(df, aes(x = models, y = rmse)) +
 ```{r}
 data.frame(t(data.frame(actual_metrics_test))) %>% arrange(desc(r2))
 data.frame(t(data.frame(ensemble_actual_metrics_test))) %>% arrange(desc(r2))
+save(list=ls(), file="assignment_modell")
+```
+
+### Stacking
+```{r}
+stacked_data <- data.frame(y = y_test, prediction_rf = y_pred_test_rf, prediction_xgb = y_pred_test_xgb, prediction_lgb = y_pred_test_lgb, prediction_catboost = y_pred_test_catboost)
+model_meta <- caret::train(y ~ ., data = stacked_data, method = "lm")
+predictions_meta <- predict(model_meta, newdata = stacked_data)
+
+ensemble_rmse_test$stacking_score <- rmse(y_pred_test, y_test)
+ensemble_actual_metrics_test$stacking <- metrics_fusion(y_pred_test, y_test)
+
+# Plot RMSE for ensemble models on the test set
+df <- data.frame(models = names(ensemble_rmse_test), rmse = unlist(ensemble_rmse_test))
+df
+
+ggplot(df, aes(x = models, y = rmse)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  xlab("Models") +
+  ylab("RMSE") +
+  ylim(0, 0.35) +
+  ggtitle("Ensemble RMSE") +
+  theme_minimal()
+
+data.frame(t(data.frame(actual_metrics_test))) %>% arrange(desc(r2))
+data.frame(t(data.frame(ensemble_actual_metrics_test))) %>% arrange(desc(r2))
+save(list=ls(), file="assignment_model")
 ```
