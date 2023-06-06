@@ -1,0 +1,71 @@
+## Introduction
+Due to intense competition, the housing market necessitates constant innovation and optimisation.
+A machine learning approach has enormous promise to address these issues.
+Housing development and sales processes can be improved by using artificial intelligence and data analysis to ensure efficiency, profitability, and responsiveness to changing client demands. 
+In particular, this study aims to investigate the relationship between house attributes and sales by applying machine learning approaches to optimise housing development and sales. 
+Finding the elements that appeal to customers the most is the aim. 
+Industry experts can take crucial lessons from this inquiry on utilising machine learning to succeed in the dynamic real estate market.
+
+
+## Objectives
+(1) Maximize revenue and customer satisfaction while minimizing costs and risk.
+(2) Identify best type of properties with competitive prices to attract potential buyers
+
+
+## Conclusion
+
+Several regression models were trained and evaluated on a dataset. 
+The linear regression model, trained using cross-validation, achieved good results with an RMSE score of approximately 0.1408 on the validation dataset and 0.1351 on the test dataset. 
+Lasso regression, which incorporates feature selection, had an average RMSE score of around 0.1654 on validation and 0.1361 on the test dataset.
+Ridge regression, focusing on reducing multicollinearity, had an average RMSE score of approximately 0.2432 on validation and 0.1434 on the test dataset. 
+Elastic Net regression, combining Lasso and Ridge regularization, performed well with an RMSE score of around 0.1639 on validation and 0.1356 on the test dataset.
+K-Nearest Neighbors regression achieved moderate performance with an average RMSE score of approximately 0.1832 on validation and 0.1881 on the test dataset.
+
+The SVR model, based on support vector regression, consistently performed well with an average RMSE score of 0.1419 on validation and 0.1327 on the test dataset. 
+The decision tree model had an average RMSE score of 0.2999 on validation and 0.2723 on the test dataset. 
+In comparison, the random forest model, an ensemble of decision trees, outperformed the decision tree model with an average RMSE score of 0.1714 on validation and 0.1357 on the test dataset. 
+The random forest model highlighted influential features such as "OverallQual," "GrLivArea," and "YearBuilt" in predicting sale prices.
+
+Among the gradient-boosted tree models, XGBoost and LightGBM had similar performance. 
+XGBoost achieved a validation RMSE of 0.1245088 and a test RMSE of 0.1244002, while LightGBM had a validation RMSE of 0.1302412 and a test RMSE of 0.1376078. 
+CatBoost had slightly higher errors with a validation RMSE of 0.1918585 and a test RMSE of 0.1245417. 
+Key factors influencing house prices included OverallQual, GrLivArea, and GarageArea.
+
+Overall, the linear regression, Lasso regression, Elastic Net regression, SVR, random forest, XGBoost, and LightGBM models showed promising performance in predicting sale prices. 
+These models can provide valuable insights for decision-making in the real estate market.
+
+
+In the analysis, comparison the performance of baseline models and ensemble models for the given dataset will be occur. 
+The evaluation metric used was Root Mean Squared Error (RMSE), which measures the average prediction error.
+RMSE provides a measure of the average prediction error in the same units as the target variable. 
+It is useful for comparing different models or evaluating the performance of a single model. 
+Lower RMSE values indicate better predictive accuracy, as they imply smaller average errors between predicted and actual values.
+Higher RMSE values indicate worse predictive accuracy, as they imply bigger average errors between predicted and actual values.
+
+Baseline Models (Training Set):
+Six models had been used which are Linear regression, Lasso, Ridge, Elasticnet, Knn, Svr and Decision tree. 
+Among the baseline models, linear regression models had the lowest Root Mean Squared Error (RMSE), followed closely by Svr. 
+Knn, Elasticnet, Lasso and Ridge performed relatively well
+However, Decision Tree had the highest RMSE, indicating poorer predictive performance.
+
+Ensemble Models (Training Set):
+The ensemble models, including Random Forest, XGBoost, LightGBM, and CatBoost, showed improved performance compared to individual baseline models.
+LightGBM achieved the lowest RMSE on the test set, closely followed by XGBoost.
+The highest RMSE is catboost and followed by Random Forest, indicating poorer predictive performance.
+
+Baseline Models (Test Set):
+Based on the provided plot and data for the baseline models' RMSE on the test set, Decision tree had the highest Root Mean Squared Error (RMSE) while Svr had the lowest Root Mean Squared Error (RMSE).
+Decision tree showed the worst predictive performance, closely followed by Knn and Ridge.
+SVR showed the best predictive performance, closely followed by Linear Regression, ElasticNet and Lasso.
+
+Ensemble Models (Test Set):
+Based on the provided plot and data for the ensemble models' RMSE on the test set, XGBoost and CatBoost achieved the lowest Root Mean Squared Error (RMSE) value.  
+They were closely followed by the stacking model.
+These three models exhibited the best predictive performance among the ensemble models.
+LightGBM had the highest RMSE but it also performed relatively well.
+Random Forest had a slightly higher RMSE compared to the top-performing ensemble models but still demonstrated a good predictive performance.
+
+Comparision
+In baseline models, Svr, Elasticnet, Linear_regression and Lasso showed the best predictive performance.
+XGBoost, CatBoost, and the stacking model showed the best predictive performance among the ensemble models based on the RMSE metric. 
+These models have the potential to provide more accurate predictions for the target variable on the test set. 
