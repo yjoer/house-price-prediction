@@ -1,5 +1,5 @@
 ---
-title: "Untitled"
+title: "WQD7004 OCC1"
 output: html_document
 date: "2023-05-20"
 ---
@@ -35,6 +35,12 @@ source("data_cleaning.r")
 ```
 
 ## Data Transformation/Scaling
+
+#### Data preprocessing steps such as log transformation, scaling, and one-hot encoding.
+
+#### Data splitted into train, validation, and test sets and combines the training and validation sets for model training.
+
+#### Calculates and displays the skewness of the numerical features and target variable before and after the log transformations.
 
 Split the numerical variables into features and the target variable.
 
@@ -130,7 +136,14 @@ names(X)
 
 ## Clustering
 
-### PCA
+#### The code executes PCA (Principal Component Analysis) to reduce the data's dimensionality and extract the principal components.
+
+#### Elbow method used to determine the best number of clusters.
+
+#### K-means clustering is performed on the principal components, assigning each observation to a specific cluster.
+
+#### The cluster assignments are appended to the principal components data, and a scatter plot is generated to visualize the resulting clusters.
+
 ```{r}
 # Load the necessary libraries
 library(stats)
@@ -161,7 +174,23 @@ ggplot(principal_components, aes(PC1, PC2, color = cluster)) +
  theme_minimal()
 ```
 
-### t-SNE
+## t-SNE
+
+#### t-SNE (t-Distributed Stochastic Neighbor Embedding) is perfomed for dimensionality reduction and visualization of the data.
+
+## Function:
+
+#### Calculates the t-SNE coordinates
+
+#### Creates a dendrogram through hierarchical clustering
+
+#### Determines the number of clusters visually, assigns data points to clusters
+
+#### Computes centroids for each cluster
+
+#### Generates scatter plots to visualize the t-SNE coordinates colored by the original variable and cluster assignments
+
+#### Includes a bar plot showing the cluster frequencies and evaluates clustering quality using silhouette analysis.
 
 ```{r}
 tsne <- Rtsne(X)
@@ -218,6 +247,12 @@ fviz_silhouette(silhouette(cutree(hclust_avg, k = k), dist_mat))
 
 ## Baselines
 
+#### Sets up empty lists to store RMSE values for baseline models on the training and testing datasets.
+
+#### Calculate performance metrics (MAE, MAPE, RMSE, MSE, R2) by converting predicted and actual values from transformed to original scale.
+
+#### Focus on data structures and the metrics calculation function.
+
 ```{r}
 baselines_rmse <- list()
 
@@ -238,7 +273,19 @@ metrics_fusion <- function(y_pred, y) {
 }
 ```
 
-### Linear Regression
+## Linear Regression
+
+#### Evaluates the performance of a linear regression model for a regression problem.
+
+#### Cross-validation used to train the model on the training and validation data.
+
+#### Resulting model is applied to make predictions on the validation dataset.
+
+#### Root mean squared error (RMSE) is calculated as a measure of prediction accuracy for the model on the validation data.
+
+#### Trained linear regression model used to make predictions on the test dataset.
+
+###3 RMSE is calculated by comparing the predicted values with the actual test values. \#### Stores additional performance metrics (MAE, MAPE, RMSE, MSE, R2) for the linear regression model on the test data.
 
 ```{r}
 linreg_tc <- trainControl(method = "cv", number = 5)
@@ -266,7 +313,19 @@ score_val
 score_test
 ```
 
-### Lasso Regression
+## Lasso Regression
+
+#### Lasso Regression applied to a regression problem.
+
+#### Model trained by using cross-validation and selects the optimal regularization parameter.
+
+#### Root mean squared error (RMSE) calculated for the validation set.
+
+#### For the test set, target variable predicted by using the trained model, calculates the RMSE
+
+#### Actual performance metrics (MAE, MAPE, RMSE, MSE, R2) computed for the Lasso Regression model on the test set
+
+#### Displays the validation RMSE and test RMSE.
 
 ```{r}
 lasso <- cv.glmnet(x = as.matrix(X_train_val), y = y_train_val, alpha = 1)
@@ -286,7 +345,19 @@ score_val
 score_test
 ```
 
-### Ridge Regression
+## Ridge Regression
+
+#### Ridge Regression applied to a regression problem.
+
+#### Model trained by using cross-validation and selects the optimal regularization parameter.
+
+#### Root mean squared error (RMSE) calculated for the validation set.
+
+#### For the test set, it predicts the target variable using the trained model, calculates the RMSE.
+
+#### Actual performance metrics (MAE, MAPE, RMSE, MSE, R2) computed for the Ridge Regression model on the test set.
+
+#### Validation RMSE and test RMSE dsiplayed.
 
 ```{r}
 ridge <- cv.glmnet(x = as.matrix(X_train_val), y = y_train_val, alpha = 0)
@@ -306,7 +377,19 @@ score_val
 score_test
 ```
 
-### Elastic Net
+## Elastic Net
+
+#### Elastic Net Regression applied to a regression problem.
+
+#### Cross-validation peformed to select the optimal alpha parameter, which controls the balance between L1 (Lasso) and L2 (Ridge) regularization.
+
+#### The root mean squared error (RMSE) calculated for the validation set.
+
+#### For the test set, it predicts the target variable using the trained Elastic Net model with the selected alpha value, calculates the RMSE.
+
+#### Actual performance metrics (MAE, MAPE, RMSE, MSE, R2) computed for the Elastic Net model on the test set.
+
+#### Selected alpha, validation RMSE, and test RMSE.
 
 ```{r}
 results <- data.frame()
@@ -338,7 +421,13 @@ score_val
 score_test
 ```
 
-### K-Nearest Neighbors Regression
+## K-Nearest Neighbors Regression
+
+#### K-Nearest Neighbors Regression applied to the data
+
+#### Calculates the RMSE for validation and test sets, and stores the results.
+
+#### Additional performance metrics computed and displays the RMSE values.
 
 ```{r}
 knn_tc <- trainControl(method = "cv", number = 5)
@@ -366,7 +455,13 @@ score_val
 score_test
 ```
 
-### Support Vector Regression
+## Support Vector Regression
+
+#### Support Vector Regression (SVR) applied to the data
+
+### Calculates the RMSE for validation and test sets, and stores the results.
+
+### Additional performance metrics computed and displays the RMSE values.
 
 ```{r}
 svr_tc <- trainControl(method = "cv", number = 5)
@@ -394,7 +489,13 @@ score_val
 score_test
 ```
 
-### Decision Tree
+## Decision Tree
+
+#### Decision Tree regression applied to the data.
+
+#### Calculates the RMSE for validation and test sets, and stores the results.
+
+#### Additional performance metrics computed and displays the RMSE values.
 
 ```{r}
 dt_tc <- trainControl(method = "cv", number = 5)
@@ -424,6 +525,10 @@ score_test
 
 ## Ensemble Learning
 
+#### Empty lists initialized that will be used to store the RMSE values and actual performance metrics for ensemble learning models.
+
+#### Empty lists will be populated with values in subsequent steps of the code.
+
 ```{r}
 ensemble_rmse <- list()
 ensemble_actual_metrics <- list()
@@ -432,7 +537,15 @@ ensemble_rmse_test <- list()
 ensemble_actual_metrics_test <- list()
 ```
 
-### Random Forest
+## Random Forest
+
+#### Random forest algorithm implemented for regression tasks using ensemble learning.
+
+#### Rrandom forest model trained on the training and validation data.
+
+#### Its performance is evaluated using root mean squared error (RMSE) on the validation and test datasets.
+
+#### Calculate feature importance using the random forest model and creates a bar plot to visualize the top 30 important features.
 
 ```{r}
 rf_tc <- trainControl(method = "cv", number = 5)
@@ -473,7 +586,19 @@ ggplot(data = rf_df, aes(x = reorder(Feature, IncNodePurity), y = IncNodePurity)
   coord_flip()
 ```
 
-### Gradient-Boosted Trees
+## Gradient-Boosted Trees
+
+#### Gradient-Boosted Trees (GBT) using XGBoost, LightGBM, and CatBoost libraries implemented for regression tasks.
+
+#### The models are trained on the training and validation data, and their performance is evaluated using RMSE on the validation and test datasets.
+
+#### The best hyperparameters are determined through cross-validation, and the models are then used to make predictions on the test data.
+
+#### The RMSE scores and other evaluation metrics are recorded for each model.
+
+#### The feature importance of the GBT model is visualized using a bar chart.
+
+#### Code snippet showcases the application of ensemble learning techniques for regression tasks using boosting algorithms.
 
 ```{r}
 dtrain_val <- xgb.DMatrix(data = as.matrix(X_train_val), label = y_train_val)
@@ -705,6 +830,16 @@ ggplot(data = catb_df, aes(x = reorder(Feature, Importance), y = Importance)) +
 
 ## Association Rule Mining on Housing Characteristics
 
+#### Code snippet performs association rule mining on housing characteristics using the Apriori algorithm.
+
+#### Converts categorical data into transactions and applies the Apriori algorithm to find frequent itemsets.
+
+#### Generate association rules using given support and confidence thresholds.
+
+#### The code includes a dictionary to map column names and values to their corresponding descriptions for better rule interpretation.
+
+#### Top ten association rules with their corresponding explanations displayed, including the antecedent (IF) and consequent (THEN) parts along with their descriptions and confidence percentages.
+
 ```{r}
 transactions <- transactions(categorical_data)
 summary(transactions)
@@ -804,7 +939,16 @@ for (i in 1:nrow(rules_top_ten_df)) {
 }
 ```
 
-### Stacking
+## Stacking
+
+#### Stacking is performed by combining the predictions from different models (Random Forest, XGBoost, LightGBM, CatBoost) into a new dataset.
+
+#### Linear regression model is trained on the stacked dataset to learn the relationship between ensemble predictions and the actual target values.
+
+#### Model's predictions on the test dataset are evaluated using root mean squared error (RMSE).
+
+#### Metrics fusion function is applied to assess the performance of the stacking ensemble.
+
 ```{r}
 stacked_data <- data.frame(y = y_train_val, prediction_rf = y_pred_train_rf, prediction_xgb = y_pred_train_xgb, prediction_lgb = y_pred_train_lgb, prediction_catboost = y_pred_train_catboost)
 
@@ -817,7 +961,17 @@ ensemble_rmse_test$stacking_score <- rmse(predictions_meta, y_test)
 ensemble_actual_metrics_test$stacking <- metrics_fusion(predictions_meta, y_test)
 ```
 
-### Comparison
+## Comparison
+
+#### Compares the performance of different models and ensembles using the root mean squared error (RMSE) metric.
+
+#### Bar charts created to display the RMSE values, with the x-axis representing the models and the y-axis representing the RMSE.
+
+#### First set of plots focuses on the baseline models on both the training and test sets.
+
+#### Second set focuses on the ensemble models on both the training and test sets.
+
+#### Purpose is to compare the models' performance and determine which ones have the lowest RMSE, indicating better predictive accuracy.
 
 ```{r}
 # Plot RMSE for baseline models
