@@ -171,7 +171,7 @@ dataset <- subset(dataset, select = -c(PoolQC, MiscFeature, Alley, Fence, Firepl
 num_cols <- sapply(dataset, is.numeric)
 for (col in names(dataset[, num_cols])) {
   col_median <- median(dataset[, col], na.rm = TRUE)
-  dataset[, col][is.na(dataset[, col])] <- rep(col_mean, sum(is.na(dataset[, col])))
+  dataset[, col][is.na(dataset[, col])] <- rep(col_median, sum(is.na(dataset[, col])))
 }
 ```
 
