@@ -700,7 +700,7 @@ metrics_fusion <- function(y_pred, y) {
 
 -   Stores additional performance metrics (MAE, MAPE, RMSE, MSE, R2) for the linear regression model on the test data.
 
-```{r}
+```{r, warning=FALSE}
 linreg_tc <- trainControl(method = "cv", number = 5)
 linreg_cv <- caret::train(
   SalePrice ~ .,
@@ -911,7 +911,7 @@ score_test
 
 -   Additional performance metrics computed and displays the RMSE values.
 
-```{r}
+```{r, warning=FALSE}
 dt_tc <- trainControl(method = "cv", number = 5)
 dt_cv <- caret::train(
   SalePrice ~ .,
