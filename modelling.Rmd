@@ -183,6 +183,98 @@ for (col in names(dataset[, cat_cols])) {
 }
 ```
 
+### Data Transformation/Scaling
+
+-   Data pre-processing steps such as log transformation, scaling, and one-hot encoding.
+
+-   Data splitted into train, validation, and test sets and combines the training and validation sets for model training.
+
+-   Calculates and displays the skewness of the numerical features and target variable before and after the log transformations.
+
+```{r}
+# Split the numerical variables into features and the target variable.
+X_num <- subset(numerical_data, select = -c(SalePrice))
+y <- subset(numerical_data, select = c(SalePrice))$SalePrice
+```
+
+```{r}
+# Log Transformation for numerical features.
+skewness_before <- sapply(X_num, function(x) {
+  e1071::skewness(x)
+})
+
+X_num_skewed <- skewness_before[abs(skewness_before) > 0.75]
+
+for (x in names(X_num_skewed)) {
+  X_num[[x]] <- log1p(X_num[[x]])
+}
+
+skewness_after <- sapply(X_num, function(x) {
+  e1071::skewness(x)
+})
+
+data.frame(skewness_before, skewness_after)
+```
+
+```{r}
+# Log Transformation for the target variable.
+skewness_before <- e1071::skewness(y)
+
+y_t <- log1p(y)
+
+skewness_after <- e1071::skewness(y_t)
+
+sprintf("Before: %f, After: %f", skewness_before, skewness_after)
+```
+
+```{r}
+# Scaling
+X_num <- scale(X_num)
+```
+
+```{r}
+# One-Hot Encoding for categorical variables.
+encoder <- dummyVars(~., data = categorical_data)
+
+X_cat <- predict(encoder, newdata = categorical_data)
+X_cat <- data.frame(X_cat)
+```
+
+```{r}
+# Split into train and validation and test sets.
+X <- cbind(X_cat, X_num)
+
+train_idx <- createDataPartition(y_t, p = 0.7, list = F)
+X_train <- X[train_idx, ]
+y_train <- y_t[train_idx]
+
+X_test <- X[-train_idx, ]
+y_test <- y_t[-train_idx]
+
+train_val_idx <- createDataPartition(y_train, p = 0.8, list = FALSE)
+X_train <- X_train[train_val_idx, ]
+y_train <- y_train[train_val_idx]
+
+X_val <- X_train[-train_val_idx, ]
+y_val <- y_train[-train_val_idx]
+
+X_train_val <- rbind(X_train, X_val)
+y_train_val <- c(y_train, y_val)
+```
+
+```{r}
+dim(X)
+length(y)
+
+dim(X_train)
+length(y_train)
+
+dim(X_val)
+length(y_val)
+
+#names(X)
+```
+
 ### Explore Data - Exploratory Data Analysis (EDA)
 
 #### Plot Distribution of Numeric Data
@@ -335,7 +427,7 @@ print(columns_with_outliers)
 -   X1stFlrSF & TotalBsmtSF \|\| 0.81953
 
 ```{r}
-# Create a heatmap of the correlation matrix
+# Create a heat map of the correlation matrix
 correlation_matrix <- cor(numerical_data, method = "pearson")
 corrplot(correlation_matrix, method = "color", type = "upper", order = "hclust", tl.col = "black", tl.cex = 0.3, tl.srt = 90)
 
@@ -450,98 +542,6 @@ suppressWarnings({
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-```
-
-### Data Transformation/Scaling
-
--   Data pre-processing steps such as log transformation, scaling, and one-hot encoding.
-
--   Data splitted into train, validation, and test sets and combines the training and validation sets for model training.
-
--   Calculates and displays the skewness of the numerical features and target variable before and after the log transformations.
-
-```{r}
-# Split the numerical variables into features and the target variable.
-X_num <- subset(numerical_data, select = -c(SalePrice))
-y <- subset(numerical_data, select = c(SalePrice))$SalePrice
-```
-
-```{r}
-# Log Transformation for numerical features.
-skewness_before <- sapply(X_num, function(x) {
-  e1071::skewness(x)
-})
-
-X_num_skewed <- skewness_before[abs(skewness_before) > 0.75]
-
-for (x in names(X_num_skewed)) {
-  X_num[[x]] <- log1p(X_num[[x]])
-}
-
-skewness_after <- sapply(X_num, function(x) {
-  e1071::skewness(x)
-})
-
-data.frame(skewness_before, skewness_after)
-```
-
-```{r}
-# Log Transformation for the target variable.
-skewness_before <- e1071::skewness(y)
-
-y_t <- log1p(y)
-
-skewness_after <- e1071::skewness(y_t)
-
-sprintf("Before: %f, After: %f", skewness_before, skewness_after)
-```
-
-```{r}
-# Scaling
-X_num <- scale(X_num)
-```
-
-```{r}
-# One-Hot Encoding for categorical variables.
-encoder <- dummyVars(~., data = categorical_data)
-
-X_cat <- predict(encoder, newdata = categorical_data)
-X_cat <- data.frame(X_cat)
-```
-
-```{r}
-# Split into train and validation and test sets.
-X <- cbind(X_cat, X_num)
-
-train_idx <- createDataPartition(y_t, p = 0.7, list = F)
-X_train <- X[train_idx, ]
-y_train <- y_t[train_idx]
-
-X_test <- X[-train_idx, ]
-y_test <- y_t[-train_idx]
-
-train_val_idx <- createDataPartition(y_train, p = 0.8, list = FALSE)
-X_train <- X_train[train_val_idx, ]
-y_train <- y_train[train_val_idx]
-
-X_val <- X_train[-train_val_idx, ]
-y_val <- y_train[-train_val_idx]
-
-X_train_val <- rbind(X_train, X_val)
-y_train_val <- c(y_train, y_val)
-```
-
-```{r}
-dim(X)
-length(y)
-
-dim(X_train)
-length(y_train)
-
-dim(X_val)
-length(y_val)
-
-#names(X)
 ```
 
 ### Clustering
