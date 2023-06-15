@@ -482,8 +482,6 @@ skewness_before <- sapply(X_num, function(x) {
 X_num_skewed <- skewness_before[abs(skewness_before) > 0.75]
 
 for (x in names(X_num_skewed)) {
-  # bc <- BoxCoxTrans(X_num[[x]], lambda = 0.15)
-  # X_num[[x]] <- predict(bc, X_num[[x]])
   X_num[[x]] <- log1p(X_num[[x]])
 }
 
