@@ -349,7 +349,7 @@ high_corr_df <- data.frame(row = high_corr[, 1], col = high_corr[, 2], corr = hi
 high_corr_df
 ```
 
-#### Categorical Data
+#### Bar Plots for Categorical Data
 
 -   There are total of 37 categorical data column
 
@@ -357,8 +357,6 @@ high_corr_df
 # Display the first six rows of the categorical data frame
 head(categorical_data)
 ```
-
-#### Print bar plots for categorical data
 
 -   Generally, most of the residents having following characteristics:
 
