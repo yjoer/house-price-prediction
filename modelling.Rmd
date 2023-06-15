@@ -1149,7 +1149,8 @@ params <- list(
   learning_rate = 0.1,
   feature_fraction = 0.9,
   bagging_fraction = 0.8,
-  bagging_freq = 5
+  bagging_freq = 5,
+  force_row_wise = T
 )
 
 lgb_cv <- lgb.cv(
