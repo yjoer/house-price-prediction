@@ -577,7 +577,7 @@ k <- 3
 # Perform K-means clustering on the principal components
 kmeans_result <- kmeans(principal_components, centers = k)
 cluster_assignments <- kmeans_result$cluster
-print(cluster_assignments)
+# print(cluster_assignments)
 
 # Add the cluster assignments to the principal components data
 principal_components$cluster <- as.factor(cluster_assignments)
