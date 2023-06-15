@@ -940,7 +940,7 @@ score_val
 score_test
 ```
 
-##### Ensemble Learning
+#### Ensemble Learning
 
 -   Empty lists initialized that will be used to store the RMSE values and actual performance metrics for ensemble learning models.
 
@@ -1266,7 +1266,7 @@ ensemble_rmse_test$stacking_score <- rmse(predictions_meta, y_test)
 ensemble_actual_metrics_test$stacking <- metrics_fusion(predictions_meta, y_test)
 ```
 
-##### Comparison
+#### Comparison
 
 -   Compares the performance of different models and ensembles using the root mean squared error (RMSE) metric.
 
@@ -1336,7 +1336,7 @@ data.frame(t(data.frame(ensemble_actual_metrics_test))) %>% arrange(desc(r2))
 save(list=ls(), file="assignment_model")
 ```
 
-##### Association Rule Mining on Housing Characteristics
+### Association Rule Mining on Housing Characteristics
 
 -   Code snippet performs association rule mining on housing characteristics using the Apriori algorithm.
 
