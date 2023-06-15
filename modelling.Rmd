@@ -1244,6 +1244,98 @@ ggplot(data = catb_df, aes(x = reorder(Feature, Importance), y = Importance)) +
   coord_flip()
 ```
 
+##### Stacking
+
+-   Stacking is performed by combining the predictions from different models (Random Forest, XGBoost, LightGBM, CatBoost) into a new dataset.
+
+-   Linear regression model is trained on the stacked dataset to learn the relationship between ensemble predictions and the actual target values.
+
+-   Model's predictions on the test dataset are evaluated using root mean squared error (RMSE).
+
+-   Metrics fusion function is applied to assess the performance of the stacking ensemble.
+
+```{r}
+stacked_data <- data.frame(y = y_train_val, prediction_rf = y_pred_train_rf, prediction_xgb = y_pred_train_xgb, prediction_lgb = y_pred_train_lgb, prediction_catboost = y_pred_train_catboost)
+
+stacked_data_test <- data.frame(y = y_test, prediction_rf = y_pred_test_rf, prediction_xgb = y_pred_test_xgb, prediction_lgb = y_pred_test_lgb, prediction_catboost = y_pred_test_catboost)
+
+model_meta <- caret::train(y ~ ., data = stacked_data, method = "lm")
+predictions_meta <- predict(model_meta, newdata = stacked_data_test)
+
+ensemble_rmse_test$stacking_score <- rmse(predictions_meta, y_test)
+ensemble_actual_metrics_test$stacking <- metrics_fusion(predictions_meta, y_test)
+```
+
+##### Comparison
+
+-   Compares the performance of different models and ensembles using the root mean squared error (RMSE) metric.
+
+-   Bar charts created to display the RMSE values, with the x-axis representing the models and the y-axis representing the RMSE.
+
+-   First set of plots focuses on the baseline models on both the training and test sets.
+
+-   Second set focuses on the ensemble models on both the training and test sets.
+
+-   Purpose is to compare the models' performance and determine which ones have the lowest RMSE, indicating better predictive accuracy.
+
+```{r}
+# Plot RMSE for baseline models
+df <- data.frame(models = names(baselines_rmse), rmse = unlist(baselines_rmse))
+df
+
+ggplot(df, aes(x = models, y = rmse)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  xlab("Models") +
+  ylab("RMSE") +
+  ylim(0, 0.35) +
+  ggtitle("Baseline RMSE") +
+  theme_minimal()
+
+# Plot RMSE for ensemble models
+df <- data.frame(models = names(ensemble_rmse), rmse = unlist(ensemble_rmse))
+df
+
+ggplot(df, aes(x = models, y = rmse)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  xlab("Models") +
+  ylab("RMSE") +
+  ylim(0, 0.35) +
+  ggtitle("Ensemble RMSE") +
+  theme_minimal()
+```
+
+```{r}
+# Plot RMSE for baseline models on the test set
+df <- data.frame(models = names(baselines_rmse_test), rmse = unlist(baselines_rmse_test))
+df
+
+ggplot(df, aes(x = models, y = rmse)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  xlab("Models") +
+  ylab("RMSE") +
+  ylim(0, 0.35) +
+  ggtitle("Baseline RMSE") +
+  theme_minimal()
+
+# Plot RMSE for ensemble models on the test set
+df <- data.frame(models = names(ensemble_rmse_test), rmse = unlist(ensemble_rmse_test))
+df
+
+ggplot(df, aes(x = models, y = rmse)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  xlab("Models") +
+  ylab("RMSE") +
+  ylim(0, 0.35) +
+  ggtitle("Ensemble RMSE") +
+  theme_minimal()
+```
+
+```{r}
+data.frame(t(data.frame(actual_metrics_test))) %>% arrange(desc(r2))
+data.frame(t(data.frame(ensemble_actual_metrics_test))) %>% arrange(desc(r2))
+save(list=ls(), file="assignment_model")
+```
+
 ##### Association Rule Mining on Housing Characteristics
 
 -   Code snippet performs association rule mining on housing characteristics using the Apriori algorithm.
@@ -1353,98 +1445,6 @@ for (i in 1:nrow(rules_top_ten_df)) {
   print(explanation)
   cat("\n")
 }
-```
-
-##### Stacking
-
--   Stacking is performed by combining the predictions from different models (Random Forest, XGBoost, LightGBM, CatBoost) into a new dataset.
-
--   Linear regression model is trained on the stacked dataset to learn the relationship between ensemble predictions and the actual target values.
-
--   Model's predictions on the test dataset are evaluated using root mean squared error (RMSE).
-
--   Metrics fusion function is applied to assess the performance of the stacking ensemble.
-
-```{r}
-stacked_data <- data.frame(y = y_train_val, prediction_rf = y_pred_train_rf, prediction_xgb = y_pred_train_xgb, prediction_lgb = y_pred_train_lgb, prediction_catboost = y_pred_train_catboost)
-
-stacked_data_test <- data.frame(y = y_test, prediction_rf = y_pred_test_rf, prediction_xgb = y_pred_test_xgb, prediction_lgb = y_pred_test_lgb, prediction_catboost = y_pred_test_catboost)
-
-model_meta <- caret::train(y ~ ., data = stacked_data, method = "lm")
-predictions_meta <- predict(model_meta, newdata = stacked_data_test)
-
-ensemble_rmse_test$stacking_score <- rmse(predictions_meta, y_test)
-ensemble_actual_metrics_test$stacking <- metrics_fusion(predictions_meta, y_test)
-```
-
-##### Comparison
-
--   Compares the performance of different models and ensembles using the root mean squared error (RMSE) metric.
-
--   Bar charts created to display the RMSE values, with the x-axis representing the models and the y-axis representing the RMSE.
-
--   First set of plots focuses on the baseline models on both the training and test sets.
-
--   Second set focuses on the ensemble models on both the training and test sets.
-
--   Purpose is to compare the models' performance and determine which ones have the lowest RMSE, indicating better predictive accuracy.
-
-```{r}
-# Plot RMSE for baseline models
-df <- data.frame(models = names(baselines_rmse), rmse = unlist(baselines_rmse))
-df
-
-ggplot(df, aes(x = models, y = rmse)) +
-  geom_bar(stat = "identity", fill = "steelblue") +
-  xlab("Models") +
-  ylab("RMSE") +
-  ylim(0, 0.35) +
-  ggtitle("Baseline RMSE") +
-  theme_minimal()
-
-# Plot RMSE for ensemble models
-df <- data.frame(models = names(ensemble_rmse), rmse = unlist(ensemble_rmse))
-df
-
-ggplot(df, aes(x = models, y = rmse)) +
-  geom_bar(stat = "identity", fill = "steelblue") +
-  xlab("Models") +
-  ylab("RMSE") +
-  ylim(0, 0.35) +
-  ggtitle("Ensemble RMSE") +
-  theme_minimal()
-```
-
-```{r}
-# Plot RMSE for baseline models on the test set
-df <- data.frame(models = names(baselines_rmse_test), rmse = unlist(baselines_rmse_test))
-df
-
-ggplot(df, aes(x = models, y = rmse)) +
-  geom_bar(stat = "identity", fill = "steelblue") +
-  xlab("Models") +
-  ylab("RMSE") +
-  ylim(0, 0.35) +
-  ggtitle("Baseline RMSE") +
-  theme_minimal()
-
-# Plot RMSE for ensemble models on the test set
-df <- data.frame(models = names(ensemble_rmse_test), rmse = unlist(ensemble_rmse_test))
-df
-
-ggplot(df, aes(x = models, y = rmse)) +
-  geom_bar(stat = "identity", fill = "steelblue") +
-  xlab("Models") +
-  ylab("RMSE") +
-  ylim(0, 0.35) +
-  ggtitle("Ensemble RMSE") +
-  theme_minimal()
-```
-
-```{r}
-data.frame(t(data.frame(actual_metrics_test))) %>% arrange(desc(r2))
-data.frame(t(data.frame(ensemble_actual_metrics_test))) %>% arrange(desc(r2))
-save(list=ls(), file="assignment_model")
 ```
 
 ### Conclusion
