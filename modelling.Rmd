@@ -434,7 +434,7 @@ print(columns_with_outliers)
 
 -   X1stFlrSF & TotalBsmtSF \|\| 0.81953
 
-```{r}
+```{r, fig.width=10, fig.fullwidth=TRUE}
 # Create a heat map of the correlation matrix
 correlation_matrix <- cor(numerical_data, method = "pearson")
 corrplot(correlation_matrix, method = "color", type = "upper", order = "hclust", tl.col = "black", tl.cex = 0.3, tl.srt = 90)
@@ -1061,8 +1061,8 @@ xgb <- xgboost(
 
 y_pred_test_xgb <- predict(xgb, newdata = dtest)
 score_test <- rmse(y_pred_test_xgb, y_test)
-ensemble_rmse_test$xgboost_test <- score_test
-ensemble_actual_metrics_test$xgboost_test <- metrics_fusion(y_pred_test_xgb, y_test)
+ensemble_rmse_test$xgboost <- score_test
+ensemble_actual_metrics_test$xgboost <- metrics_fusion(y_pred_test_xgb, y_test)
 
 y_pred_train_xgb <- predict(xgb, newdata = dtrain_val)
 
@@ -1121,7 +1121,7 @@ objective_fn <- makeSingleObjectiveFunction(
   minimize = TRUE
 )
 
-#Train model
+# Define experiments and an objective function
 design <- generateDesign(n = 1000, par.set = getParamSet(objective_fn), fun = lhs::randomLHS)
 control <- makeMBOControl() %>% setMBOControlTermination(., iters = 10)
 
@@ -1265,7 +1265,7 @@ stacked_data_test <- data.frame(y = y_test, prediction_rf = y_pred_test_rf, pred
 model_meta <- caret::train(y ~ ., data = stacked_data, method = "lm")
 predictions_meta <- predict(model_meta, newdata = stacked_data_test)
 
-ensemble_rmse_test$stacking_score <- rmse(predictions_meta, y_test)
+ensemble_rmse_test$stacking <- rmse(predictions_meta, y_test)
 ensemble_actual_metrics_test$stacking <- metrics_fusion(predictions_meta, y_test)
 ```
 
@@ -1282,54 +1282,38 @@ ensemble_actual_metrics_test$stacking <- metrics_fusion(predictions_meta, y_test
 -   Purpose is to compare the models' performance and determine which ones have the lowest RMSE, indicating better predictive accuracy.
 
 ```{r}
-# Plot RMSE for baseline models
-df <- data.frame(models = names(baselines_rmse), rmse = unlist(baselines_rmse))
-df
+# Plot validation loss
+rmse_all <- c(unlist(baselines_rmse), unlist(ensemble_rmse))
+rmse_all_names <- c(names(baselines_rmse), names(ensemble_rmse))
+
+df <- data.frame(models = rmse_all_names, rmse = rmse_all)
+df %>% arrange(rmse)
 
 ggplot(df, aes(x = models, y = rmse)) +
   geom_bar(stat = "identity", fill = "steelblue") +
   xlab("Models") +
   ylab("RMSE") +
   ylim(0, 0.35) +
-  ggtitle("Baseline RMSE") +
-  theme_minimal()
-
-# Plot RMSE for ensemble models
-df <- data.frame(models = names(ensemble_rmse), rmse = unlist(ensemble_rmse))
-df
-
-ggplot(df, aes(x = models, y = rmse)) +
-  geom_bar(stat = "identity", fill = "steelblue") +
-  xlab("Models") +
-  ylab("RMSE") +
-  ylim(0, 0.35) +
-  ggtitle("Ensemble RMSE") +
+  ggtitle("Validation Loss") +
+  scale_x_discrete(guide = guide_axis(angle = 45)) +
   theme_minimal()
 ```
 
 ```{r}
-# Plot RMSE for baseline models on the test set
-df <- data.frame(models = names(baselines_rmse_test), rmse = unlist(baselines_rmse_test))
-df
+# Plot test loss
+rmse_all_test <- c(unlist(baselines_rmse_test), unlist(ensemble_rmse_test))
+rmse_all_test_names <- c(names(baselines_rmse_test), names(ensemble_rmse_test))
+
+df <- data.frame(models = rmse_all_test_names, rmse = rmse_all_test)
+df %>% arrange(rmse)
 
 ggplot(df, aes(x = models, y = rmse)) +
   geom_bar(stat = "identity", fill = "steelblue") +
   xlab("Models") +
   ylab("RMSE") +
   ylim(0, 0.35) +
-  ggtitle("Baseline RMSE") +
-  theme_minimal()
-
-# Plot RMSE for ensemble models on the test set
-df <- data.frame(models = names(ensemble_rmse_test), rmse = unlist(ensemble_rmse_test))
-df
-
-ggplot(df, aes(x = models, y = rmse)) +
-  geom_bar(stat = "identity", fill = "steelblue") +
-  xlab("Models") +
-  ylab("RMSE") +
-  ylim(0, 0.35) +
-  ggtitle("Ensemble RMSE") +
+  ggtitle("Test Loss") +
+  scale_x_discrete(guide = guide_axis(angle = 45)) +
   theme_minimal()
 ```
 
