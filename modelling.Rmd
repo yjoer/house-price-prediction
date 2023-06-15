@@ -1,8 +1,259 @@
 ---
-title: "WQD7004 OCC1"
+title: "Exploratory Data Analysis"
+author: "Your Name"
 output: html_document
-date: "2023-05-20"
 ---
+```{r libraries, echo=TRUE}
+# Import necessary libraries
+library(dplyr)
+library(readr)
+library(ggplot2)
+library(psych)
+library(gridExtra)
+library(DescTools)
+library(corrplot)
+library(caret)
+library(mlr)
+suppressWarnings(expr)
+
+
+# Check current working directory
+getwd()
+
+
+
+# Change working directory
+#setwd("C:/Users/User/Desktop")
+```
+
+
+# Import Dataset
+```{r}
+dataset <- read.csv("train.csv")
+head(dataset)
+```
+
+# Dataset Overview
+## There are 1460 records (rows) and 81 attributes (columns).
+## Dataset is mostly made up of numerical values (int64 & float64) and categorical values (object). Statistics are provided for numerical variables only.
+```{r}
+cat("Total rows & columns:", dim(dataset), '\n\n')
+str(dataset)
+summary(dataset)
+```
+
+
+# Data Preprocessing
+## Check for sum of duplicates between columns
+## No duplication inside the dataset
+```{r}
+duplicates <- sum(duplicated(dataset))
+cat(paste("Number of duplicates:", duplicates))
+```
+## Remove Meaningless Columns
+## At this stage, we have removed irrelevant columns from the dataset.
+## 'Id' column is removed, as it is a unique identifier for each customer.
+## 'GarageCars' column is removed, as it provides redundant information already captured by the 'GarageArea' column.
+## We also removed the 'Exterior2nd' column, as it represents a limited set of additional choices for exterior covering.
+## Furthermore, we removed the 'GarageYrBlt' column, as the year of construction is typically the same as the 'YearBuilt' column.
+## Finally, we removed the 'TotRmsAbvGrd' column, as it provides a similar meaning as the 'First Floor' square footage.
+
+# Subset the dataset by removing specific columns
+```{r}
+dataset <- subset(dataset, select = -c(Id, GarageCars, Exterior2nd, GarageYrBlt, TotRmsAbvGrd))
+```
+
+## Check for Missing Values
+## There are a total of 19 columns with missing values
+## 5 of them have missing values higher than 20%
+## Columns with missing values higher than 20%: PoolQC, MiscFeature, Alley, Fence, FireplaceQu
+## Column with missing values higher than 20% will be removed in this stage
+# Calculate missing percentages
+```{r}
+missing_percentages <- colSums(is.na(dataset)) / nrow(dataset) * 100
+```
+
+
+# Create dataframe with column names and missing percentages
+```{r}
+missing_dataset <- data.frame(
+  column_name = names(missing_percentages), 
+  missing_percentage = missing_percentages
+) %>%
+  # Sort the dataframe by missing percentages in descending order
+  arrange(desc(missing_percentage)) %>%
+  # Filter out columns with 0 missing percentages
+  filter(missing_percentage > 0)
+```
+
+# Print the missing dataset
+```{r}
+print(missing_dataset)
+```
+
+# Remove columns with missing values more than 20%
+```{r}
+dataset <- subset(dataset, select = -c(PoolQC, MiscFeature, Alley, Fence, FireplaceQu))
+```
+
+## Impute numerical missing data using mean & Impute categorical missing data using mode
+## Median is chosen to fill in missing values, rather than the mean.
+## The mean is sensitive to extreme values and can be heavily influenced by outliers in the data, which can lead to biased estimates. In contrast, the median is a robust measure of central tendency that is less sensitive to extreme values and is more appropriate for skewed data.
+# Identify numerical columns & replace missing numerical values with mean
+```{r}
+num_cols <- sapply(dataset, is.numeric)
+for (col in names(dataset[, num_cols])) {
+  col_mean <- mean(dataset[, col], na.rm = TRUE)
+  dataset[, col][is.na(dataset[, col])] <- rep(col_mean, sum(is.na(dataset[, col])))
+}
+```
+
+# Identify categorical columns & replace missing categorical values with mode
+```{r}
+cat_cols <- sapply(dataset, is.factor) | sapply(dataset, is.character)
+for (col in names(dataset[, cat_cols])) {
+  dataset[, col][is.na(dataset[, col])] <- as.character(Mode(dataset[, col], na.rm = TRUE))
+}
+```
+
+#### Explore Data - Exploratory Data Analysis (EDA)
+### Plot Distribution of Numeric Data
+## Majority of numerical columns' distribution are right-skewed (31 attributes), however, 3 of them are left-skewed
+# Select numerical columns using the "is.numeric" function
+```{r}
+numerical_cols <- names(dataset)[sapply(dataset, is.numeric)]
+categorical_cols <- names(dataset)[sapply(dataset, is.factor) | sapply(dataset, is.character)]
+```
+
+# Create new data frames with only numerical and categorical columns
+```{r}
+numerical_data <- dataset[numerical_cols]
+categorical_data <- dataset[categorical_cols]
+```
+
+# Create a function to plot probability density plot and skewness
+```{r}
+plot_density <- function(column, col_name) {
+  # Compute the skewness of the data
+  skewness <- skew(column)
+  
+  # Set the plot color based on the skewness
+  if (skewness < 0) {
+    plot_color <- "blue"
+  } else {
+    plot_color <- "red"
+  }
+  
+  # Create the density plot
+  plot_title <- paste("Skewness:", round(skewness, 2), "| Column:", col_name)
+  density_plot <- ggplot(data = data.frame(column), aes(x = column)) +
+    geom_density(fill = plot_color, alpha = 0.3) +
+    ggtitle(plot_title)
+  
+  return(density_plot)
+}
+```
+
+# Apply the plot_density function to each column of numerical data in numerical_data
+```{r}
+plots <- lapply(names(numerical_data), function(col_name) {
+  plot_density(numerical_data[[col_name]], col_name)
+})
+```
+
+# Arrange the resulting plots in a grid with 5 columns
+```{r}
+grid.arrange(grobs = plots, ncol = 5)
+```
+
+## Check Outliers using boxplot
+# Create a list of boxplots for the first 20 attributes
+# Outliers are found in most of the columns - 27 attributes
+```{r}
+boxplot_numerical_first20attributes <- lapply(1:20, function(i) {
+  ggplot(numerical_data, aes(x = 1, y = numerical_data[, i])) +
+    geom_boxplot() +
+    ggtitle(paste0("Boxplot of", colnames(numerical_data)[i])) +
+    xlab("") +
+    ylab(colnames(numerical_data)[i])
+})
+```
+
+# Create a list of boxplots for the remaining 14 attributes
+```{r}
+boxplot_numerical_rest14attributes <- lapply(21:34, function(i) {
+  ggplot(numerical_data, aes(x = 1, y = numerical_data[, i])) +
+    geom_boxplot() +
+    ggtitle(paste0("Boxplot of", colnames(numerical_data)[i])) +
+    xlab("") +
+    ylab(colnames(numerical_data)[i])
+})
+
+grid.arrange(grobs = boxplot_numerical_first20attributes, ncol = 5)
+grid.arrange(grobs = boxplot_numerical_rest14attributes, ncol = 5)
+```
+
+# Perform Correlation Matrix
+```{r}
+correlation_matrix <- cor(numerical_data, method = "pearson")
+print(correlation_matrix)
+```
+
+# Create a heatmap of the correlation matrix
+```{r}
+corrplot(correlation_matrix, method = "color", type = "upper", order = "hclust", tl.col = "black", tl.cex = 0.3, tl.srt = 90)
+print(correlation_matrix)
+high_corr <- which(abs((correlation_matrix) > 0.8 | correlation_matrix < -0.8)& correlation_matrix!= 1, arr.ind=TRUE)
+high_corr_values <- correlation_matrix[high_corr]
+high_corr_df <- data.frame(row = high_corr[, 1], col = high_corr[, 2], corr = high_corr_values)
+high_corr_df
+```
+
+# Categorical Data
+# Display the first six rows of the categorical data frame
+```{r}
+head(categorical_data)
+```
+
+# Print bar plots for categorical data for the first 20 attributes
+```{r}
+plots_first20attribute <- lapply(colnames(categorical_data)[1:20], function(col) {
+  ggplot(categorical_data, aes_string(x = col)) +
+    geom_bar() +
+    xlab(col) +
+    ylab("Count") +
+    ggtitle(paste0("Distribution of", col)) +
+    scale_x_discrete(guide = guide_axis(check.overlap = TRUE))
+})
+
+# Print bar plots for categorical data for the remaining 17 attributes
+plots_rest23attribute <- lapply(colnames(categorical_data)[21:37], function(col) {
+  ggplot(categorical_data, aes_string(x = col)) +
+    geom_bar() +
+    xlab(col) +
+    ylab("Count") +
+    ggtitle(paste0("Distribution of", col)) +
+    scale_x_discrete(guide = guide_axis(check.overlap = TRUE))
+})
+```
+
+# Print the plots in a grid
+```{r}
+grid.arrange(grobs = plots_first20attribute, ncol = 5)
+grid.arrange(grobs = plots_rest23attribute, ncol = 5)
+```
+
+# Encode Categorical Data
+# Create a copy of the dataset
+# dataset_encode <- dataset
+
+# for (col in colnames(dataset_encode)) {
+#   if (is.factor(dataset_encode[[col]]) | is.character(dataset_encode[[col]])) {
+#     encoded_col <- predict(dummyVars(formula = as.formula(paste0("~", col)), data = dataset_encode), newdata = dataset_encode)
+#     dataset_encode[[col]] <- encoded_col
+#   }
+# }
+
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -28,10 +279,11 @@ library(xgboost)
 library(Metrics)
 library(Rtsne)
 library(DiceKriging)
+suppressWarnings(expr)
 ```
 
 ```{r}
-source("data_cleaning.r")
+#source("data_cleaning.r")
 ```
 
 ## Data Transformation/Scaling
@@ -131,14 +383,14 @@ length(y_train)
 dim(X_val)
 length(y_val)
 
-names(X)
+#names(X)
 ```
 
 ## Clustering
 
 #### The code executes PCA (Principal Component Analysis) to reduce the data's dimensionality and extract the principal components.
 
-#### Elbow method used to determine the best number of clusters.
+#### Elbow method used to determine the best number of clusters. Result: 3.
 
 #### K-means clustering is performed on the principal components, assigning each observation to a specific cluster.
 
@@ -222,6 +474,9 @@ getCentroid <- function(points) {
 centroids = matrix(0, k, 2)
 for (i in unique(cut_avg)) centroids[i, ] <- getCentroid(tsne$Y[cut_avg == i,])
 ```
+
+#### Silhouette Graph: Graph width represents the number of data point; longer length indicates a stronger separation and better-defined clusters.
+#### The lighter the color, the higher the house price. 
 
 ```{r}
 tsne_df
