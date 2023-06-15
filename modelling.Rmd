@@ -192,6 +192,16 @@ for (col in names(dataset[, cat_cols])) {
 -   Calculates and displays the skewness of the numerical features and target variable before and after the log transformations.
 
 ```{r}
+# Select numerical columns using the "is.numeric" function
+numerical_cols <- names(dataset)[sapply(dataset, is.numeric)]
+categorical_cols <- names(dataset)[sapply(dataset, is.factor) | sapply(dataset, is.character)]
+
+# Create new data frames with only numerical and categorical columns
+numerical_data <- dataset[numerical_cols]
+categorical_data <- dataset[categorical_cols]
+```
+
+```{r}
 # Split the numerical variables into features and the target variable.
 X_num <- subset(numerical_data, select = -c(SalePrice))
 y <- subset(numerical_data, select = c(SalePrice))$SalePrice
@@ -280,16 +290,6 @@ length(y_val)
 #### Plot Distribution of Numeric Data
 
 -   Majority of numerical columns' distribution are right-skewed (32 attributes), however, 2 of them are left-skewed
-
-```{r}
-# Select numerical columns using the "is.numeric" function
-numerical_cols <- names(dataset)[sapply(dataset, is.numeric)]
-categorical_cols <- names(dataset)[sapply(dataset, is.factor) | sapply(dataset, is.character)]
-
-# Create new data frames with only numerical and categorical columns
-numerical_data <- dataset[numerical_cols]
-categorical_data <- dataset[categorical_cols]
-```
 
 ```{r}
 # Display the first six rows of the numerical data frame
