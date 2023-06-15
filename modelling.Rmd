@@ -1,7 +1,14 @@
 ---
 title: "Programming of Data Science"
 author: "Group 3"
-output: html_document
+output:
+  html_document:
+    df_print: paged
+    toc: true
+    toc_depth: 5
+    toc_float:
+      collapsed: false
+      smooth_scroll: false
 ---
 
 | Name                 | Matrix Number |
@@ -320,7 +327,7 @@ plot_density <- function(column, col_name) {
 }
 ```
 
-```{r, fig.height=10}
+```{r, fig.width=10, fig.height=10, fig.fullwidth=TRUE}
 # Apply the plot_density function to each column of numerical data in numerical_data
 # Select the first 20 column names from numerical_data
 first_20 <- names(numerical_data)[1:20]
@@ -334,7 +341,7 @@ plots <- lapply(first_20, function(col_name) {
 grid.arrange(grobs = plots, ncol = 5)
 ```
 
-```{r, fig.height=10}
+```{r, fig.width=10, fig.height=10, fig.fullwidth=TRUE}
 # Select the first 20 column names from numerical_data
 rest_14 <- names(numerical_data)[21:34]
 
@@ -353,7 +360,7 @@ grid.arrange(grobs = plots, ncol = 5)
 
 -   "MSSubClass", "LotFrontage", "LotArea", "OverallQual", "OverallCond", "YearBuilt", "MasVnrArea", "BsmtFinSF1", "BsmtFinSF2", "BsmtUnfSF", "TotalBsmtSF", "X1stFlrSF", "X2ndFlrSF", "LowQualFinSF", "GrLivArea", "BsmtFullBath", "BsmtHalfBath", "BedroomAbvGr", "KitchenAbvGr", "Fireplaces", "GarageArea", "WoodDeckSF", "OpenPorchSF", "EnclosedPorch", "X3SsnPorch", "ScreenPorch", "PoolArea", "MiscVal", "SalePrice"
 
-```{r, fig.height=10}
+```{r, fig.width=10, fig.height=10, fig.fullwidth=TRUE}
 # Create a list to store the column names with outliers
 columns_with_outliers <- c()
 
@@ -386,7 +393,7 @@ boxplot_numerical_first20attributes <- lapply(1:20, function(i) {
 grid.arrange(grobs = boxplot_numerical_first20attributes, ncol = 5)
 ```
 
-```{r, fig.height=10}
+```{r, fig.width=10, fig.height=10, fig.fullwidth=TRUE}
 # Create a list of boxplots for the rest
 boxplot_numerical_restattributes <- lapply(21:34, function(i) {
   # Calculate the lower and upper fences for outlier detection
@@ -508,7 +515,7 @@ head(categorical_data)
 
     -   Normal Sales
 
-```{r, fig.height=10}
+```{r, fig.width=10, fig.height=10, fig.fullwidth=TRUE}
 # Print bar plots for categorical data for the first 20 attributes
 plots_first20attribute <- lapply(colnames(categorical_data)[1:20], function(col) {
   ggplot(categorical_data, aes(x = !!sym(col))) +
@@ -523,7 +530,7 @@ grid.arrange(grobs = plots_first20attribute, ncol = 5)
 
 ```
 
-```{r, fig.height=10}
+```{r, fig.width=10, fig.height=10, fig.fullwidth=TRUE}
 # Print bar plots for categorical data for the remaining 17 attributes
 plots_restattribute <- lapply(colnames(categorical_data)[21:37], function(col) {
   ggplot(categorical_data, aes(x = !!sym(col))) +
@@ -535,10 +542,6 @@ plots_restattribute <- lapply(colnames(categorical_data)[21:37], function(col) {
 })
 
 grid.arrange(grobs = plots_restattribute, ncol = 5)
-```
-
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ### Clustering
@@ -983,6 +986,7 @@ ensemble_rmse_test$random_forest <- score_test
 ensemble_actual_metrics_test$random_forest <- metrics_fusion(y_pred_test_rf, y_test)
 
 y_pred_train_rf <- predict(rf, newdata = X_train_val)
+
 # Display scores
 score_val
 score_test
@@ -1174,6 +1178,7 @@ ensemble_rmse_test$lightgbm <- score_test
 ensemble_actual_metrics_test$lightgbm <- metrics_fusion(y_pred_test_lgb, y_test)
 
 y_pred_train_lgb <- predict(lgb, data = as.matrix(X_train_val))
+
 # Display scores
 score_val
 score_test
@@ -1222,6 +1227,7 @@ ensemble_rmse_test$catboost <- score_test
 ensemble_actual_metrics_test$catboost <- metrics_fusion(y_pred_test_catboost, y_test)
 
 y_pred_train_catboost <- catboost.predict(catb, train_val_pool)
+
 # Display scores
 score_val
 score_test
