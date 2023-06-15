@@ -1350,7 +1350,7 @@ data.frame(t(data.frame(ensemble_actual_metrics_test))) %>% arrange(desc(r2))
 
 -   Top ten association rules with their corresponding explanations displayed, including the antecedent (IF) and consequent (THEN) parts along with their descriptions and confidence percentages.
 
-```{r}
+```{r, warning=FALSE}
 transactions <- transactions(categorical_data)
 summary(transactions)
 ```
