@@ -644,7 +644,8 @@ ggplot(tsne_df, aes(x=Y.1, y=Y.2, color=y)) +
 
 ggplot(data.frame(table(tsne_df$cluster)), aes(x=Var1, y=Freq)) +
   geom_bar(stat = "identity") +
-  coord_flip()
+  coord_flip() +
+  labs(x = "Clusters", y = "Sizes")
 
 ggplot(tsne_df, aes(x=Y.1, y=Y.2, color=cluster)) +
   geom_point() +
@@ -1001,7 +1002,8 @@ rf_df <- data.frame(rf$importance) %>%
 rf_df
 ggplot(data = rf_df, aes(x = reorder(Feature, IncNodePurity), y = IncNodePurity)) +
   geom_bar(stat = "identity") +
-  coord_flip()
+  coord_flip() +
+  labs(x = "Features", y = "Importance")
 ```
 
 ##### Gradient-Boosted Trees
@@ -1077,7 +1079,8 @@ xgb_df <- xgb.importance(model = xgb) %>% head(30)
 xgb_df
 ggplot(data = xgb_df, aes(x = reorder(Feature, Gain), y = Gain)) +
   geom_bar(stat = "identity") +
-  coord_flip()
+  coord_flip() +
+  labs(x = "Features", y = "Importance")
 ```
 
 ```{r}
@@ -1190,7 +1193,8 @@ lgb_df <- lgb.importance(model = lgb) %>% head(30)
 lgb_df
 ggplot(data = xgb_df, aes(x = reorder(Feature, Gain), y = Gain)) +
   geom_bar(stat = "identity") +
-  coord_flip()
+  coord_flip() +
+  labs(x = "Features", y = "Importance")
 ```
 
 ```{r}
@@ -1244,7 +1248,8 @@ catb_df <- catb_df %>%
 catb_df
 ggplot(data = catb_df, aes(x = reorder(Feature, Importance), y = Importance)) +
   geom_bar(stat = "identity") +
-  coord_flip()
+  coord_flip() +
+  labs(x = "Features", y = "Importance")
 ```
 
 ##### Stacking
@@ -1275,9 +1280,9 @@ ensemble_actual_metrics_test$stacking <- metrics_fusion(predictions_meta, y_test
 
 -   Bar charts created to display the RMSE values, with the x-axis representing the models and the y-axis representing the RMSE.
 
--   First set of plots focuses on the baseline models on both the training and test sets.
+-   The first plot focuses on the evaluation using the validation set.
 
--   Second set focuses on the ensemble models on both the training and test sets.
+-   The second plot focuses on the evaluation using the test set.
 
 -   Purpose is to compare the models' performance and determine which ones have the lowest RMSE, indicating better predictive accuracy.
 
@@ -1289,13 +1294,13 @@ rmse_all_names <- c(names(baselines_rmse), names(ensemble_rmse))
 df <- data.frame(models = rmse_all_names, rmse = rmse_all)
 df %>% arrange(rmse)
 
-ggplot(df, aes(x = models, y = rmse)) +
+ggplot(df, aes(x = factor(models, level=rmse_all_names), y = rmse)) +
   geom_bar(stat = "identity", fill = "steelblue") +
   xlab("Models") +
   ylab("RMSE") +
-  ylim(0, 0.35) +
+  ylim(0, 0.3) +
   ggtitle("Validation Loss") +
-  scale_x_discrete(guide = guide_axis(angle = 45)) +
+  scale_x_discrete(guide = guide_axis(angle = 30)) +
   theme_minimal()
 ```
 
@@ -1307,13 +1312,13 @@ rmse_all_test_names <- c(names(baselines_rmse_test), names(ensemble_rmse_test))
 df <- data.frame(models = rmse_all_test_names, rmse = rmse_all_test)
 df %>% arrange(rmse)
 
-ggplot(df, aes(x = models, y = rmse)) +
+ggplot(df, aes(x = factor(models, level=rmse_all_test_names), y = rmse)) +
   geom_bar(stat = "identity", fill = "steelblue") +
   xlab("Models") +
   ylab("RMSE") +
-  ylim(0, 0.35) +
+  ylim(0, 0.3) +
   ggtitle("Test Loss") +
-  scale_x_discrete(guide = guide_axis(angle = 45)) +
+  scale_x_discrete(guide = guide_axis(angle = 30)) +
   theme_minimal()
 ```
 
