@@ -454,11 +454,6 @@ suppressWarnings({
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-```{r}
-
-suppressWarnings(expr)
-```
-
 ### Data Transformation/Scaling
 
 -   Data pre-processing steps such as log transformation, scaling, and one-hot encoding.
