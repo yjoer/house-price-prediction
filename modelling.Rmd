@@ -461,7 +461,7 @@ suppressWarnings(expr)
 
 ### Data Transformation/Scaling
 
--   Data preprocessing steps such as log transformation, scaling, and one-hot encoding.
+-   Data pre-processing steps such as log transformation, scaling, and one-hot encoding.
 
 -   Data splitted into train, validation, and test sets and combines the training and validation sets for model training.
 
@@ -555,6 +555,8 @@ length(y_val)
 
 ### Clustering
 
+#### PCA + K-Means Clustering
+
 -   The code executes PCA (Principal Component Analysis) to reduce the data's dimensionality and extract the principal components.
 
 -   Elbow method used to determine the best number of clusters. Result: 3.
@@ -589,9 +591,9 @@ ggplot(principal_components, aes(PC1, PC2, color = cluster)) +
  theme_minimal()
 ```
 
-#### t-SNE
+#### t-SNE + Hierarchical Clustering
 
--   t-SNE (t-Distributed Stochastic Neighbor Embedding) is perfomed for dimensionality reduction and visualization of the data.
+-   t-SNE (t-Distributed Stochastic Neighbor Embedding) is performed for dimensionality reduction and visualization of the data.
 
 Function:
 
@@ -892,7 +894,8 @@ svr_cv <- caret::train(
   SalePrice ~ .,
   data = cbind(X_train_val, SalePrice = y_train_val),
   trControl = svr_tc,
-  method = "svmLinear2"
+  method = "svmLinear2",
+  scale = F
 )
 
 # Validation predictions and metrics
@@ -900,7 +903,7 @@ score_val <- mean(svr_cv$results$RMSE)
 baselines_rmse$svr <- score_val
 
 # Test predictions and metrics
-svr <- e1071::svm(SalePrice ~ ., data = cbind(X_train_val, SalePrice = y_train_val))
+svr <- e1071::svm(SalePrice ~ ., data = cbind(X_train_val, SalePrice = y_train_val), scale = F)
 
 y_pred_test <- predict(svr, newdata = X_test)
 score_test <- rmse(y_pred_test, y_test)
