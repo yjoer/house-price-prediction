@@ -183,7 +183,7 @@ for (col in names(dataset[, cat_cols])) {
 }
 ```
 
-### Data Transformation/Scaling
+#### Data Transformation/Scaling
 
 -   Data pre-processing steps such as log transformation, scaling, and one-hot encoding.
 
