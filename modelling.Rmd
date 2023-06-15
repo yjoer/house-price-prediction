@@ -1148,7 +1148,7 @@ params <- list(
   objective = "regression",
   metric = "rmse",
   boosting_type = "gbdt",
-  num_boost_round = 100,
+  num_boost_round = 10000,
   num_leaves = 15,
   learning_rate = 0.1,
   feature_fraction = 0.9,
