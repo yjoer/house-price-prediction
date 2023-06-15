@@ -508,36 +508,33 @@ head(categorical_data)
 
     -   Normal Sales
 
-```{r}
+```{r, fig.height=10}
 # Print bar plots for categorical data for the first 20 attributes
-suppressWarnings({
-  plots_first20attribute <- lapply(colnames(categorical_data)[1:20], function(col) {
-    ggplot(categorical_data, aes_string(x = col)) +
-      geom_bar(fill = "steelblue") + 
-      xlab(col) +
-      ylab("Count") +
-      ggtitle(paste0("Distribution of", col)) +
-      scale_x_discrete(guide = guide_axis(check.overlap = TRUE))
-  })
-  grid.arrange(grobs = plots_first20attribute, ncol = 5)
+plots_first20attribute <- lapply(colnames(categorical_data)[1:20], function(col) {
+  ggplot(categorical_data, aes(x = !!sym(col))) +
+    geom_bar(fill = "steelblue") +
+    xlab(col) +
+    ylab("Count") +
+    ggtitle(paste0("Distribution of", col)) +
+    scale_x_discrete(guide = guide_axis(check.overlap = TRUE))
 })
+
+grid.arrange(grobs = plots_first20attribute, ncol = 5)
+
 ```
 
-```{r}
+```{r, fig.height=10}
 # Print bar plots for categorical data for the remaining 17 attributes
-suppressWarnings({
-  plots_restattribute <- lapply(colnames(categorical_data)[21:37], function(col) {
-    ggplot(categorical_data, aes_string(x = col)) +
-      geom_bar(fill = "steelblue") + 
-      xlab(col) +
-      ylab("Count") +
-      ggtitle(paste0("Distribution of", col)) +
-      scale_x_discrete(guide = guide_axis(check.overlap = TRUE))
-  })
-  grid.arrange(grobs = plots_restattribute, ncol = 5)
+plots_restattribute <- lapply(colnames(categorical_data)[21:37], function(col) {
+  ggplot(categorical_data, aes(x = !!sym(col))) +
+    geom_bar(fill = "steelblue") +
+    xlab(col) +
+    ylab("Count") +
+    ggtitle(paste0("Distribution of", col)) +
+    scale_x_discrete(guide = guide_axis(check.overlap = TRUE))
 })
 
-
+grid.arrange(grobs = plots_restattribute, ncol = 5)
 ```
 
 ```{r setup, include=FALSE}
