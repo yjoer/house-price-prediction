@@ -254,6 +254,7 @@ X_cat <- data.frame(X_cat)
 # Split into train and validation and test sets.
 X <- cbind(X_cat, X_num)
 
+set.seed(12345)
 train_idx <- createDataPartition(y_t, p = 0.7, list = F)
 X_train <- X[train_idx, ]
 y_train <- y_t[train_idx]
@@ -430,7 +431,6 @@ print(columns_with_outliers)
 # Create a heat map of the correlation matrix
 correlation_matrix <- cor(numerical_data, method = "pearson")
 corrplot(correlation_matrix, method = "color", type = "upper", order = "hclust", tl.col = "black", tl.cex = 0.3, tl.srt = 90)
-
 ```
 
 ```{r}
