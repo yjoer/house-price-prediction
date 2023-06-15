@@ -1333,7 +1333,6 @@ ggplot(df, aes(x = models, y = rmse)) +
 ```{r}
 data.frame(t(data.frame(actual_metrics_test))) %>% arrange(desc(r2))
 data.frame(t(data.frame(ensemble_actual_metrics_test))) %>% arrange(desc(r2))
-save(list=ls(), file="assignment_model")
 ```
 
 ### Association Rule Mining on Housing Characteristics
