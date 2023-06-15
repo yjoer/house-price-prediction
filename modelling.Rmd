@@ -21,7 +21,7 @@ output: html_document
 -   Finding the elements that appeal to customers the most is the aim.
 -   Industry experts can take crucial lessons from this inquiry on utilising machine learning to succeed in the dynamic real estate market.
 
-#### **Problem statement:**
+#### **Problem Statement:**
 
 -   Clustering -- Group house tiers based on their features to identify common characteristics and attributes that can inform our decision-making process in terms of what type of houses we should build.
 
@@ -33,43 +33,50 @@ output: html_document
 
 -   Maximize revenue and customer satisfaction while minimizing costs and risk.
 
--   Identify best type of properties with competitive prices to attract potential buyers
+-   Identify best type of properties with competitive prices to attract potential buyers.
 
 ### Data Description/ Source
 
--   The dataset is collected from Kaggle and it contains test and train dataset
+-   The dataset is collected from Kaggle and it contains test and train dataset.
 
 -   Data Source: <https://www.kaggle.com/datasets/prevek18/ames-housing-dataset>
 
-### Import necessary libraries
+### Import Necessary Libraries
 
 ```{r}
-library(dplyr)
-library(readr)
-library(ggplot2)
-library(psych)
-library(gridExtra)
-library(DescTools)
-library(corrplot)
-library(caret)
-library(mlr)
-
 suppressPackageStartupMessages({
-  library(dplyr)
-  library(readr)
-  library(ggplot2)
-  library(psych)
-  library(gridExtra)
-  library(DescTools)
-  library(corrplot)
+  library(arules)
   library(caret)
+  library(catboost)
+  library(cluster)
+  library(corrplot)
+  library(dplyr)
+  library(e1071)
+  library(factoextra)
+  library(ggplot2)
+  library(glmnet)
+  library(gridExtra)
+  library(lattice)
+  library(lightgbm)
   library(mlr)
+  library(mlrMBO)
+  library(psych)
+  library(randomForest)
+  library(readr)
+  library(stats)
+  library(tidyr)
+  library(viridis)
+  library(xgboost)
+  library(DescTools)
+  library(Metrics)
+  library(Rtsne)
+  library(DiceKriging)
 })
 ```
 
 ### Import Dataset
 
--   Dataset contains information on housing features such as location, size, number of rooms, and other amenities
+-   Dataset contains information on housing features such as location, size, number of rooms, and other amenities.
 
 ```{r}
 dataset <- read.csv("train.csv")
@@ -89,7 +96,7 @@ str(dataset)
 
 ### Data Pre-processing
 
-#### Check for sum of duplicates between columns
+#### Check for Sum of Duplicates Between Columns
 
 -   No duplication inside the dataset.
 
@@ -131,12 +138,12 @@ dataset <- subset(dataset, select = -c(Id, GarageCars, Exterior2nd, GarageYrBlt,
 # Calculate missing percentage
 missing_percentages <- colSums(is.na(dataset)) / nrow(dataset) * 100
 
-# Create dataframe with column names and missing percentages
+# Create a data frame with column names and missing percentages
 missing_dataset <- data.frame(
   column_name = names(missing_percentages), 
   missing_percentage = missing_percentages
 ) %>%
-  # Sort the dataframe by missing percentages in descending order
+  # Sort the data frame by missing percentages in descending order
   arrange(desc(missing_percentage)) %>%
   # Filter out columns with 0 missing percentages
   filter(missing_percentage > 0)
@@ -145,14 +152,13 @@ missing_dataset <- data.frame(
 print(missing_dataset)
 ```
 
-#### Columns with missing values more than 20% is removed
+#### Remove Columns With More Than 20% Missing Values
 
 ```{r}
-#Remove columns with missing values more than 20%
 dataset <- subset(dataset, select = -c(PoolQC, MiscFeature, Alley, Fence, FireplaceQu))
 ```
 
-#### Impute numerical missing data using mean & Impute categorical missing data using mode
+#### Impute Missing Data
 
 -   Median is chosen to fill in missing values, rather than the mean.
 
@@ -161,10 +167,10 @@ dataset <- subset(dataset, select = -c(PoolQC, MiscFeature, Alley, Fence, Firepl
 -   In contrast, the median is a robust measure of central tendency that is less sensitive to extreme values and is more appropriate for skewed data.
 
 ```{r}
-# Identify numerical columns & replace missing numerical values with mean
+# Identify numerical columns & replace missing numerical values with median
 num_cols <- sapply(dataset, is.numeric)
 for (col in names(dataset[, num_cols])) {
-  col_mean <- mean(dataset[, col], na.rm = TRUE)
+  col_median <- median(dataset[, col], na.rm = TRUE)
   dataset[, col][is.na(dataset[, col])] <- rep(col_mean, sum(is.na(dataset[, col])))
 }
 ```
@@ -200,32 +206,28 @@ head(numerical_data)
 
 ```{r}
 # Create a function to plot probability density plot and skewness
-library(gridExtra)
-
-# Create a function to plot probability density plot and skewness
 plot_density <- function(column, col_name) {
   # Compute the skewness of the data
   skewness <- skew(column)
-  
+
   # Set the plot color based on the skewness
   if (skewness < 0) {
     plot_color <- "blue"
   } else {
     plot_color <- "red"
   }
-  
+
   # Create the density plot
   plot_title <- col_name  # Rename the plot title with the column name
   density_plot <- ggplot(data = data.frame(column), aes(x = column)) +
     geom_density(fill = plot_color, alpha = 0.3) +
     ggtitle(plot_title)
-  
+
   return(density_plot)
 }
-
 ```
 
-```{r}
+```{r, fig.height=10}
 # Apply the plot_density function to each column of numerical data in numerical_data
 # Select the first 20 column names from numerical_data
 first_20 <- names(numerical_data)[1:20]
@@ -239,8 +241,7 @@ plots <- lapply(first_20, function(col_name) {
 grid.arrange(grobs = plots, ncol = 5)
 ```
 
-```{r}
-
+```{r, fig.height=10}
 # Select the first 20 column names from numerical_data
 rest_14 <- names(numerical_data)[21:34]
 
@@ -253,13 +254,13 @@ plots <- lapply(rest_14, function(col_name) {
 grid.arrange(grobs = plots, ncol = 5)
 ```
 
-#### Check Outliers using boxplot
+#### Check Outliers Using Boxplot
 
 -   Outliers are found in most of the columns - 29 attributes
 
 -   "MSSubClass", "LotFrontage", "LotArea", "OverallQual", "OverallCond", "YearBuilt", "MasVnrArea", "BsmtFinSF1", "BsmtFinSF2", "BsmtUnfSF", "TotalBsmtSF", "X1stFlrSF", "X2ndFlrSF", "LowQualFinSF", "GrLivArea", "BsmtFullBath", "BsmtHalfBath", "BedroomAbvGr", "KitchenAbvGr", "Fireplaces", "GarageArea", "WoodDeckSF", "OpenPorchSF", "EnclosedPorch", "X3SsnPorch", "ScreenPorch", "PoolArea", "MiscVal", "SalePrice"
 
-```{r}
+```{r, fig.height=10}
 # Create a list to store the column names with outliers
 columns_with_outliers <- c()
 
@@ -271,15 +272,15 @@ boxplot_numerical_first20attributes <- lapply(1:20, function(i) {
   IQR <- Q3 - Q1
   lower_fence <- Q1 - 1.5 * IQR
   upper_fence <- Q3 + 1.5 * IQR
-  
+
   # Check for outliers
   outliers <- numerical_data[, i] < lower_fence | numerical_data[, i] > upper_fence
-  
+
   # Add the column name to the list if outliers are present
   if (any(outliers)) {
     columns_with_outliers <<- c(columns_with_outliers, colnames(numerical_data)[i])
   }
-  
+
   # Create the boxplot
   ggplot(numerical_data, aes(x = 1, y = numerical_data[, i])) +
     geom_boxplot() +
@@ -292,8 +293,7 @@ boxplot_numerical_first20attributes <- lapply(1:20, function(i) {
 grid.arrange(grobs = boxplot_numerical_first20attributes, ncol = 5)
 ```
 
-```{r}
-
+```{r, fig.height=10}
 # Create a list of boxplots for the rest
 boxplot_numerical_restattributes <- lapply(21:34, function(i) {
   # Calculate the lower and upper fences for outlier detection
@@ -302,15 +302,15 @@ boxplot_numerical_restattributes <- lapply(21:34, function(i) {
   IQR <- Q3 - Q1
   lower_fence <- Q1 - 1.5 * IQR
   upper_fence <- Q3 + 1.5 * IQR
-  
+
   # Check for outliers
   outliers <- numerical_data[, i] < lower_fence | numerical_data[, i] > upper_fence
-  
+
   # Add the column name to the list if outliers are present
   if (any(outliers)) {
     columns_with_outliers <<- c(columns_with_outliers, colnames(numerical_data)[i])
   }
-  
+
   # Create the boxplot
   ggplot(numerical_data, aes(x = 1, y = numerical_data[, i])) +
     geom_boxplot() +
@@ -328,7 +328,7 @@ grid.arrange(grobs = boxplot_numerical_restattributes, ncol = 5)
 print(columns_with_outliers)
 ```
 
-### Perform Correlation Matrix
+#### Plot Correlation Matrix
 
 -   Correlation with \>0.8 and above:
 
@@ -349,7 +349,7 @@ high_corr_df <- data.frame(row = high_corr[, 1], col = high_corr[, 2], corr = hi
 high_corr_df
 ```
 
-### Categorical Data
+#### Categorical Data
 
 -   There are total of 37 categorical data column
 
@@ -455,29 +455,11 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r}
-library(arules)
-library(caret)
-library(catboost)
-library(cluster)
-library(dplyr)
-library(e1071)
-library(factoextra)
-library(ggplot2)
-library(glmnet)
-library(lattice)
-library(lightgbm)
-library(mlrMBO)
-library(randomForest)
-library(tidyr)
-library(viridis)
-library(xgboost)
-library(Metrics)
-library(Rtsne)
-library(DiceKriging)
+
 suppressWarnings(expr)
 ```
 
-#### Data Transformation/Scaling
+### Data Transformation/Scaling
 
 -   Data preprocessing steps such as log transformation, scaling, and one-hot encoding.
 
@@ -571,7 +553,7 @@ length(y_val)
 #names(X)
 ```
 
-#### Clustering
+### Clustering
 
 -   The code executes PCA (Principal Component Analysis) to reduce the data's dimensionality and extract the principal components.
 
@@ -582,10 +564,6 @@ length(y_val)
 -   The cluster assignments are appended to the principal components data, and a scatter plot is generated to visualize the resulting clusters.
 
 ```{r}
-# Load the necessary libraries
-library(stats)
-library(factoextra)
-
 # Perform PCA on the data matrix
 pca_result <- prcomp(X)
 
@@ -686,6 +664,8 @@ fviz_silhouette(silhouette(cutree(hclust_avg, k = k), dist_mat))
 
 ```
 
+### Regression Modelling
+
 #### Baselines
 
 -   Sets up empty lists to store RMSE values for baseline models on the training and testing datasets.
@@ -714,7 +694,7 @@ metrics_fusion <- function(y_pred, y) {
 }
 ```
 
-#### Linear Regression
+##### Linear Regression
 
 -   Evaluates the performance of a linear regression model for a regression problem.
 
@@ -756,7 +736,7 @@ score_val
 score_test
 ```
 
-#### Lasso Regression
+##### Lasso Regression
 
 -   Lasso Regression applied to a regression problem.
 
@@ -788,7 +768,7 @@ score_val
 score_test
 ```
 
-#### Ridge Regression
+##### Ridge Regression
 
 -   Ridge Regression applied to a regression problem.
 
@@ -820,7 +800,7 @@ score_val
 score_test
 ```
 
-#### Elastic Net
+##### Elastic Net
 
 -   Elastic Net Regression applied to a regression problem.
 
@@ -864,7 +844,7 @@ score_val
 score_test
 ```
 
-#### K-Nearest Neighbors Regression
+##### K-Nearest Neighbors Regression
 
 -   K-Nearest Neighbors Regression applied to the data
 
@@ -898,7 +878,7 @@ score_val
 score_test
 ```
 
-#### Support Vector Regression
+##### Support Vector Regression
 
 -   Support Vector Regression (SVR) applied to the data
 
@@ -932,7 +912,7 @@ score_val
 score_test
 ```
 
-#### Decision Tree
+##### Decision Tree
 
 -   Decision Tree regression applied to the data.
 
@@ -966,7 +946,7 @@ score_val
 score_test
 ```
 
-#### Ensemble Learning
+##### Ensemble Learning
 
 -   Empty lists initialized that will be used to store the RMSE values and actual performance metrics for ensemble learning models.
 
@@ -980,11 +960,11 @@ ensemble_rmse_test <- list()
 ensemble_actual_metrics_test <- list()
 ```
 
-#### Random Forest
+##### Random Forest
 
 -   Random forest algorithm implemented for regression tasks using ensemble learning.
 
--   Rrandom forest model trained on the training and validation data.
+-   Random forest model trained on the training and validation data.
 
 -   Its performance is evaluated using root mean squared error (RMSE) on the validation and test datasets.
 
@@ -1029,7 +1009,7 @@ ggplot(data = rf_df, aes(x = reorder(Feature, IncNodePurity), y = IncNodePurity)
   coord_flip()
 ```
 
-#### Gradient-Boosted Trees
+##### Gradient-Boosted Trees
 
 -   Gradient-Boosted Trees (GBT) using XGBoost, LightGBM, and CatBoost libraries implemented for regression tasks.
 
@@ -1157,6 +1137,7 @@ control <- makeMBOControl() %>% setMBOControlTermination(., iters = 10)
 #  control = control,
 #  show.info = TRUE
 #)
+
 # Best parameters
 #run$x
 ```
@@ -1268,7 +1249,7 @@ ggplot(data = catb_df, aes(x = reorder(Feature, Importance), y = Importance)) +
   coord_flip()
 ```
 
-#### Association Rule Mining on Housing Characteristics
+##### Association Rule Mining on Housing Characteristics
 
 -   Code snippet performs association rule mining on housing characteristics using the Apriori algorithm.
 
@@ -1379,7 +1360,7 @@ for (i in 1:nrow(rules_top_ten_df)) {
 }
 ```
 
-#### Stacking
+##### Stacking
 
 -   Stacking is performed by combining the predictions from different models (Random Forest, XGBoost, LightGBM, CatBoost) into a new dataset.
 
@@ -1401,7 +1382,7 @@ ensemble_rmse_test$stacking_score <- rmse(predictions_meta, y_test)
 ensemble_actual_metrics_test$stacking <- metrics_fusion(predictions_meta, y_test)
 ```
 
-#### Comparison
+##### Comparison
 
 -   Compares the performance of different models and ensembles using the root mean squared error (RMSE) metric.
 
