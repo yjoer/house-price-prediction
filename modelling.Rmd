@@ -1,10 +1,49 @@
 ---
-title: "Exploratory Data Analysis"
-author: "Your Name"
+title: "Programming of Data Science"
+author: "Group 3"
 output: html_document
 ---
-```{r libraries, echo=TRUE}
-# Import necessary libraries
+
+| Name                 | Matrix Number |
+|----------------------|---------------|
+| Hoo Xing Yu          | S2117839      |
+| Pei Lin Soh          | S2193368      |
+| Low Kian Haw         | S2190839      |
+| Clarice Lau Yeo Hang | S2192784      |
+| Yeoh Joer            | 22077700      |
+
+### Introduction
+
+-   Due to intense competition, the housing market necessitates constant innovation and optimisation.
+-   A machine learning approach has enormous promise to address these issues.
+-   Housing development and sales processes can be improved by using artificial intelligence and data analysis to ensure efficiency, profitability, and responsiveness to changing client demands.
+-   In particular, this study aims to investigate the relationship between house attributes and sales by applying machine learning approaches to optimise housing development and sales.
+-   Finding the elements that appeal to customers the most is the aim.
+-   Industry experts can take crucial lessons from this inquiry on utilising machine learning to succeed in the dynamic real estate market.
+
+#### **Problem statement:**
+
+-   Clustering -- Group house tiers based on their features to identify common characteristics and attributes that can inform our decision-making process in terms of what type of houses we should build.
+
+-   Prediction -- Predict house prices based on various features such as location, size, number of rooms, and other amenities. This information will allow us to price our properties competitively and attract potential buyers.
+
+-   Association rule -- Determine customers\' preferences on renovation based on house types to inform our renovation plans and maximize the number of houses sold.
+
+### Research Objective
+
+-   Maximize revenue and customer satisfaction while minimizing costs and risk.
+
+-   Identify best type of properties with competitive prices to attract potential buyers
+
+### Data Description/ Source
+
+-   The dataset is collected from Kaggle and it contains test and train dataset
+
+-   Data Source: <https://www.kaggle.com/datasets/prevek18/ames-housing-dataset>
+
+### Import necessary libraries
+
+```{r}
 library(dplyr)
 library(readr)
 library(ggplot2)
@@ -14,68 +53,85 @@ library(DescTools)
 library(corrplot)
 library(caret)
 library(mlr)
-suppressWarnings(expr)
 
-
-# Check current working directory
-getwd()
-
-
-
-# Change working directory
-#setwd("C:/Users/User/Desktop")
+suppressPackageStartupMessages({
+  library(dplyr)
+  library(readr)
+  library(ggplot2)
+  library(psych)
+  library(gridExtra)
+  library(DescTools)
+  library(corrplot)
+  library(caret)
+  library(mlr)
+})
 ```
 
+### Import Dataset
 
-# Import Dataset
+-   Dataset contains information on housing features such as location, size, number of rooms, and other amenities
+
 ```{r}
 dataset <- read.csv("train.csv")
 head(dataset)
 ```
 
-# Dataset Overview
-## There are 1460 records (rows) and 81 attributes (columns).
-## Dataset is mostly made up of numerical values (int64 & float64) and categorical values (object). Statistics are provided for numerical variables only.
+### Dataset Overview
+
+-   There are 1460 records (rows) and 81 attributes (columns).
+
+-   Dataset are mostly made up of numerical value (int64 & float64).
+
 ```{r}
 cat("Total rows & columns:", dim(dataset), '\n\n')
 str(dataset)
-summary(dataset)
 ```
 
+### Data Pre-processing
 
-# Data Preprocessing
-## Check for sum of duplicates between columns
-## No duplication inside the dataset
+#### Check for sum of duplicates between columns
+
+-   No duplication inside the dataset.
+
 ```{r}
 duplicates <- sum(duplicated(dataset))
 cat(paste("Number of duplicates:", duplicates))
 ```
-## Remove Meaningless Columns
-## At this stage, we have removed irrelevant columns from the dataset.
-## 'Id' column is removed, as it is a unique identifier for each customer.
-## 'GarageCars' column is removed, as it provides redundant information already captured by the 'GarageArea' column.
-## We also removed the 'Exterior2nd' column, as it represents a limited set of additional choices for exterior covering.
-## Furthermore, we removed the 'GarageYrBlt' column, as the year of construction is typically the same as the 'YearBuilt' column.
-## Finally, we removed the 'TotRmsAbvGrd' column, as it provides a similar meaning as the 'First Floor' square footage.
 
-# Subset the dataset by removing specific columns
+#### Remove Meaningless Columns
+
+-   At this stage, we have removed irrelevant columns from the dataset.
+
+-   'Id' column is removed, as it is a unique identifier for each customer.
+
+-   'GarageCars' column is removed, as it provides redundant information already captured by the 'GarageArea' column.
+
+-   We also removed the 'Exterior2nd' column, as it represents a limited set of additional choices for exterior covering.
+
+-   Furthermore, we removed the 'GarageYrBlt' column, as the year of construction is typically the same as the 'YearBuilt' column.
+
+-   Finally, we removed the 'TotRmsAbvGrd' column, as it provides a similar meaning as the 'First Floor' square footage.
+
 ```{r}
+# Subset the dataset by removing specific columns
 dataset <- subset(dataset, select = -c(Id, GarageCars, Exterior2nd, GarageYrBlt, TotRmsAbvGrd))
 ```
 
-## Check for Missing Values
-## There are a total of 19 columns with missing values
-## 5 of them have missing values higher than 20%
-## Columns with missing values higher than 20%: PoolQC, MiscFeature, Alley, Fence, FireplaceQu
-## Column with missing values higher than 20% will be removed in this stage
-# Calculate missing percentages
-```{r}
-missing_percentages <- colSums(is.na(dataset)) / nrow(dataset) * 100
-```
+#### Check for Missing Values
 
+-   There are a total of 19 columns with missing values
+
+-   5 of them have missing values higher than 20%
+
+-   Columns with missing values higher than 20%: PoolQC, MiscFeature, Alley, Fence, FireplaceQu
+
+-   Column with missing values higher than 20% will be removed in this stage
+
+```{r}
+# Calculate missing percentage
+missing_percentages <- colSums(is.na(dataset)) / nrow(dataset) * 100
 
 # Create dataframe with column names and missing percentages
-```{r}
 missing_dataset <- data.frame(
   column_name = names(missing_percentages), 
   missing_percentage = missing_percentages
@@ -84,23 +140,28 @@ missing_dataset <- data.frame(
   arrange(desc(missing_percentage)) %>%
   # Filter out columns with 0 missing percentages
   filter(missing_percentage > 0)
-```
 
 # Print the missing dataset
-```{r}
 print(missing_dataset)
 ```
 
-# Remove columns with missing values more than 20%
+#### Columns with missing values more than 20% is removed
+
 ```{r}
+#Remove columns with missing values more than 20%
 dataset <- subset(dataset, select = -c(PoolQC, MiscFeature, Alley, Fence, FireplaceQu))
 ```
 
-## Impute numerical missing data using mean & Impute categorical missing data using mode
-## Median is chosen to fill in missing values, rather than the mean.
-## The mean is sensitive to extreme values and can be heavily influenced by outliers in the data, which can lead to biased estimates. In contrast, the median is a robust measure of central tendency that is less sensitive to extreme values and is more appropriate for skewed data.
-# Identify numerical columns & replace missing numerical values with mean
+#### Impute numerical missing data using mean & Impute categorical missing data using mode
+
+-   Median is chosen to fill in missing values, rather than the mean.
+
+-   The mean is sensitive to extreme values and can be heavily influenced by outliers in the data, which can lead to biased estimates.
+
+-   In contrast, the median is a robust measure of central tendency that is less sensitive to extreme values and is more appropriate for skewed data.
+
 ```{r}
+# Identify numerical columns & replace missing numerical values with mean
 num_cols <- sapply(dataset, is.numeric)
 for (col in names(dataset[, num_cols])) {
   col_mean <- mean(dataset[, col], na.rm = TRUE)
@@ -108,31 +169,40 @@ for (col in names(dataset[, num_cols])) {
 }
 ```
 
-# Identify categorical columns & replace missing categorical values with mode
 ```{r}
+# Identify categorical columns & replace missing categorical values with mode
 cat_cols <- sapply(dataset, is.factor) | sapply(dataset, is.character)
 for (col in names(dataset[, cat_cols])) {
   dataset[, col][is.na(dataset[, col])] <- as.character(Mode(dataset[, col], na.rm = TRUE))
 }
 ```
 
-#### Explore Data - Exploratory Data Analysis (EDA)
-### Plot Distribution of Numeric Data
-## Majority of numerical columns' distribution are right-skewed (31 attributes), however, 3 of them are left-skewed
-# Select numerical columns using the "is.numeric" function
+### Explore Data - Exploratory Data Analysis (EDA)
+
+#### Plot Distribution of Numeric Data
+
+-   Majority of numerical columns' distribution are right-skewed (32 attributes), however, 2 of them are left-skewed
+
 ```{r}
+# Select numerical columns using the "is.numeric" function
 numerical_cols <- names(dataset)[sapply(dataset, is.numeric)]
 categorical_cols <- names(dataset)[sapply(dataset, is.factor) | sapply(dataset, is.character)]
-```
 
 # Create new data frames with only numerical and categorical columns
-```{r}
 numerical_data <- dataset[numerical_cols]
 categorical_data <- dataset[categorical_cols]
 ```
 
-# Create a function to plot probability density plot and skewness
 ```{r}
+# Display the first six rows of the numerical data frame
+head(numerical_data)
+```
+
+```{r}
+# Create a function to plot probability density plot and skewness
+library(gridExtra)
+
+# Create a function to plot probability density plot and skewness
 plot_density <- function(column, col_name) {
   # Compute the skewness of the data
   skewness <- skew(column)
@@ -145,115 +215,240 @@ plot_density <- function(column, col_name) {
   }
   
   # Create the density plot
-  plot_title <- paste("Skewness:", round(skewness, 2), "| Column:", col_name)
+  plot_title <- col_name  # Rename the plot title with the column name
   density_plot <- ggplot(data = data.frame(column), aes(x = column)) +
     geom_density(fill = plot_color, alpha = 0.3) +
     ggtitle(plot_title)
   
   return(density_plot)
 }
+
 ```
 
-# Apply the plot_density function to each column of numerical data in numerical_data
 ```{r}
-plots <- lapply(names(numerical_data), function(col_name) {
+# Apply the plot_density function to each column of numerical data in numerical_data
+# Select the first 20 column names from numerical_data
+first_20 <- names(numerical_data)[1:20]
+
+# Apply the plot_density function to each selected column
+plots <- lapply(first_20, function(col_name) {
   plot_density(numerical_data[[col_name]], col_name)
 })
-```
 
 # Arrange the resulting plots in a grid with 5 columns
-```{r}
 grid.arrange(grobs = plots, ncol = 5)
 ```
 
-## Check Outliers using boxplot
+```{r}
+
+# Select the first 20 column names from numerical_data
+rest_14 <- names(numerical_data)[21:34]
+
+# Apply the plot_density function to each selected column
+plots <- lapply(rest_14, function(col_name) {
+  plot_density(numerical_data[[col_name]], col_name)
+})
+
+# Arrange the resulting plots in a grid with 5
+grid.arrange(grobs = plots, ncol = 5)
+```
+
+#### Check Outliers using boxplot
+
+-   Outliers are found in most of the columns - 29 attributes
+
+-   "MSSubClass", "LotFrontage", "LotArea", "OverallQual", "OverallCond", "YearBuilt", "MasVnrArea", "BsmtFinSF1", "BsmtFinSF2", "BsmtUnfSF", "TotalBsmtSF", "X1stFlrSF", "X2ndFlrSF", "LowQualFinSF", "GrLivArea", "BsmtFullBath", "BsmtHalfBath", "BedroomAbvGr", "KitchenAbvGr", "Fireplaces", "GarageArea", "WoodDeckSF", "OpenPorchSF", "EnclosedPorch", "X3SsnPorch", "ScreenPorch", "PoolArea", "MiscVal", "SalePrice"
+
+```{r}
+# Create a list to store the column names with outliers
+columns_with_outliers <- c()
+
 # Create a list of boxplots for the first 20 attributes
-# Outliers are found in most of the columns - 27 attributes
-```{r}
 boxplot_numerical_first20attributes <- lapply(1:20, function(i) {
+  # Calculate the lower and upper fences for outlier detection
+  Q1 <- quantile(numerical_data[, i], 0.25)
+  Q3 <- quantile(numerical_data[, i], 0.75)
+  IQR <- Q3 - Q1
+  lower_fence <- Q1 - 1.5 * IQR
+  upper_fence <- Q3 + 1.5 * IQR
+  
+  # Check for outliers
+  outliers <- numerical_data[, i] < lower_fence | numerical_data[, i] > upper_fence
+  
+  # Add the column name to the list if outliers are present
+  if (any(outliers)) {
+    columns_with_outliers <<- c(columns_with_outliers, colnames(numerical_data)[i])
+  }
+  
+  # Create the boxplot
   ggplot(numerical_data, aes(x = 1, y = numerical_data[, i])) +
     geom_boxplot() +
     ggtitle(paste0("Boxplot of", colnames(numerical_data)[i])) +
     xlab("") +
     ylab(colnames(numerical_data)[i])
 })
-```
 
-# Create a list of boxplots for the remaining 14 attributes
-```{r}
-boxplot_numerical_rest14attributes <- lapply(21:34, function(i) {
-  ggplot(numerical_data, aes(x = 1, y = numerical_data[, i])) +
-    geom_boxplot() +
-    ggtitle(paste0("Boxplot of", colnames(numerical_data)[i])) +
-    xlab("") +
-    ylab(colnames(numerical_data)[i])
-})
-
+# Arrange the resulting boxplots in a grid with 5 columns
 grid.arrange(grobs = boxplot_numerical_first20attributes, ncol = 5)
-grid.arrange(grobs = boxplot_numerical_rest14attributes, ncol = 5)
 ```
 
-# Perform Correlation Matrix
 ```{r}
-correlation_matrix <- cor(numerical_data, method = "pearson")
-print(correlation_matrix)
+
+# Create a list of boxplots for the rest
+boxplot_numerical_restattributes <- lapply(21:34, function(i) {
+  # Calculate the lower and upper fences for outlier detection
+  Q1 <- quantile(numerical_data[, i], 0.25)
+  Q3 <- quantile(numerical_data[, i], 0.75)
+  IQR <- Q3 - Q1
+  lower_fence <- Q1 - 1.5 * IQR
+  upper_fence <- Q3 + 1.5 * IQR
+  
+  # Check for outliers
+  outliers <- numerical_data[, i] < lower_fence | numerical_data[, i] > upper_fence
+  
+  # Add the column name to the list if outliers are present
+  if (any(outliers)) {
+    columns_with_outliers <<- c(columns_with_outliers, colnames(numerical_data)[i])
+  }
+  
+  # Create the boxplot
+  ggplot(numerical_data, aes(x = 1, y = numerical_data[, i])) +
+    geom_boxplot() +
+    ggtitle(paste0("Boxplot of", colnames(numerical_data)[i])) +
+    xlab("") +
+    ylab(colnames(numerical_data)[i])
+})
+
+# Arrange the resulting boxplots in a grid with 5 columns
+grid.arrange(grobs = boxplot_numerical_restattributes, ncol = 5)
 ```
 
+```{r}
+# Print the column names with outliers
+print(columns_with_outliers)
+```
+
+### Perform Correlation Matrix
+
+-   Correlation with \>0.8 and above:
+
+-   X1stFlrSF & TotalBsmtSF \|\| 0.81953
+
+```{r}
 # Create a heatmap of the correlation matrix
-```{r}
+correlation_matrix <- cor(numerical_data, method = "pearson")
 corrplot(correlation_matrix, method = "color", type = "upper", order = "hclust", tl.col = "black", tl.cex = 0.3, tl.srt = 90)
-print(correlation_matrix)
+
+```
+
+```{r}
+# Print correlation higher than 0.8
 high_corr <- which(abs((correlation_matrix) > 0.8 | correlation_matrix < -0.8)& correlation_matrix!= 1, arr.ind=TRUE)
 high_corr_values <- correlation_matrix[high_corr]
 high_corr_df <- data.frame(row = high_corr[, 1], col = high_corr[, 2], corr = high_corr_values)
 high_corr_df
 ```
 
-# Categorical Data
-# Display the first six rows of the categorical data frame
+### Categorical Data
+
+-   There are total of 37 categorical data column
+
 ```{r}
+# Display the first six rows of the categorical data frame
 head(categorical_data)
 ```
 
+#### Print bar plots for categorical data
+
+-   Generally, most of the residents having following characteristics:
+
+    -   Low density resident
+
+    -   Paved streets
+
+    -   Gravel alley
+
+    -   Regular sized property
+
+    -   Near Flat level
+
+    -   Available with electric power, natural gas, steam supply, water supply, and sewage removal
+
+    -   Inside lot
+
+    -   Gentle slope of property
+
+    -   Single-family Detached
+
+    -   Single storey
+
+    -   Gable roof
+
+    -   Standard (Composite) Shingle roof
+
+    -   Good quality Vinyl Siding exteriors
+
+    -   Slight damped basement
+
+    -   No walkout or garden level walls
+
+    -   Gas forced warm air furnace
+
+    -   Excellent heating quality
+
+    -   Has Air-conditioning
+
+    -   Standard Circuit Breakers & Romex electrical system
+
+    -   Typical kitchen quality
+
+    -   Typical home functionality
+
+    -   Masonry Fireplace in main level
+
+    -   Typical unfinished garage attached to home
+
+    -   Paved driveway
+
+    -   Good pool quality
+
+    -   Minimum Wood/Wire fence
+
+    -   Warranty Deed -- Conventional Sales
+
+    -   Normal Sales
+
+```{r}
 # Print bar plots for categorical data for the first 20 attributes
-```{r}
-plots_first20attribute <- lapply(colnames(categorical_data)[1:20], function(col) {
-  ggplot(categorical_data, aes_string(x = col)) +
-    geom_bar() +
-    xlab(col) +
-    ylab("Count") +
-    ggtitle(paste0("Distribution of", col)) +
-    scale_x_discrete(guide = guide_axis(check.overlap = TRUE))
+suppressWarnings({
+  plots_first20attribute <- lapply(colnames(categorical_data)[1:20], function(col) {
+    ggplot(categorical_data, aes_string(x = col)) +
+      geom_bar(fill = "steelblue") + 
+      xlab(col) +
+      ylab("Count") +
+      ggtitle(paste0("Distribution of", col)) +
+      scale_x_discrete(guide = guide_axis(check.overlap = TRUE))
+  })
+  grid.arrange(grobs = plots_first20attribute, ncol = 5)
 })
+```
 
+```{r}
 # Print bar plots for categorical data for the remaining 17 attributes
-plots_rest23attribute <- lapply(colnames(categorical_data)[21:37], function(col) {
-  ggplot(categorical_data, aes_string(x = col)) +
-    geom_bar() +
-    xlab(col) +
-    ylab("Count") +
-    ggtitle(paste0("Distribution of", col)) +
-    scale_x_discrete(guide = guide_axis(check.overlap = TRUE))
+suppressWarnings({
+  plots_restattribute <- lapply(colnames(categorical_data)[21:37], function(col) {
+    ggplot(categorical_data, aes_string(x = col)) +
+      geom_bar(fill = "steelblue") + 
+      xlab(col) +
+      ylab("Count") +
+      ggtitle(paste0("Distribution of", col)) +
+      scale_x_discrete(guide = guide_axis(check.overlap = TRUE))
+  })
+  grid.arrange(grobs = plots_restattribute, ncol = 5)
 })
+
+
 ```
-
-# Print the plots in a grid
-```{r}
-grid.arrange(grobs = plots_first20attribute, ncol = 5)
-grid.arrange(grobs = plots_rest23attribute, ncol = 5)
-```
-
-# Encode Categorical Data
-# Create a copy of the dataset
-# dataset_encode <- dataset
-
-# for (col in colnames(dataset_encode)) {
-#   if (is.factor(dataset_encode[[col]]) | is.character(dataset_encode[[col]])) {
-#     encoded_col <- predict(dummyVars(formula = as.formula(paste0("~", col)), data = dataset_encode), newdata = dataset_encode)
-#     dataset_encode[[col]] <- encoded_col
-#   }
-# }
-
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -282,28 +477,22 @@ library(DiceKriging)
 suppressWarnings(expr)
 ```
 
-```{r}
-#source("data_cleaning.r")
-```
+#### Data Transformation/Scaling
 
-## Data Transformation/Scaling
+-   Data preprocessing steps such as log transformation, scaling, and one-hot encoding.
 
-#### Data preprocessing steps such as log transformation, scaling, and one-hot encoding.
+-   Data splitted into train, validation, and test sets and combines the training and validation sets for model training.
 
-#### Data splitted into train, validation, and test sets and combines the training and validation sets for model training.
-
-#### Calculates and displays the skewness of the numerical features and target variable before and after the log transformations.
-
-Split the numerical variables into features and the target variable.
+-   Calculates and displays the skewness of the numerical features and target variable before and after the log transformations.
 
 ```{r}
+# Split the numerical variables into features and the target variable.
 X_num <- subset(numerical_data, select = -c(SalePrice))
 y <- subset(numerical_data, select = c(SalePrice))$SalePrice
 ```
 
-Log Transformation for numerical features.
-
 ```{r}
+# Log Transformation for numerical features.
 skewness_before <- sapply(X_num, function(x) {
   e1071::skewness(x)
 })
@@ -323,9 +512,8 @@ skewness_after <- sapply(X_num, function(x) {
 data.frame(skewness_before, skewness_after)
 ```
 
-Log Transformation for the target variable.
-
 ```{r}
+# Log Transformation for the target variable.
 skewness_before <- e1071::skewness(y)
 
 y_t <- log1p(y)
@@ -335,24 +523,21 @@ skewness_after <- e1071::skewness(y_t)
 sprintf("Before: %f, After: %f", skewness_before, skewness_after)
 ```
 
-Scaling
-
 ```{r}
+# Scaling
 X_num <- scale(X_num)
 ```
 
-One-Hot Encoding for categorical variables.
-
 ```{r}
+# One-Hot Encoding for categorical variables.
 encoder <- dummyVars(~., data = categorical_data)
 
 X_cat <- predict(encoder, newdata = categorical_data)
 X_cat <- data.frame(X_cat)
 ```
 
-Split into train and validation and test sets.
-
 ```{r}
+# Split into train and validation and test sets.
 X <- cbind(X_cat, X_num)
 
 train_idx <- createDataPartition(y_t, p = 0.7, list = F)
@@ -386,15 +571,15 @@ length(y_val)
 #names(X)
 ```
 
-## Clustering
+#### Clustering
 
-#### The code executes PCA (Principal Component Analysis) to reduce the data's dimensionality and extract the principal components.
+-   The code executes PCA (Principal Component Analysis) to reduce the data's dimensionality and extract the principal components.
 
-#### Elbow method used to determine the best number of clusters. Result: 3.
+-   Elbow method used to determine the best number of clusters. Result: 3.
 
-#### K-means clustering is performed on the principal components, assigning each observation to a specific cluster.
+-   K-means clustering is performed on the principal components, assigning each observation to a specific cluster.
 
-#### The cluster assignments are appended to the principal components data, and a scatter plot is generated to visualize the resulting clusters.
+-   The cluster assignments are appended to the principal components data, and a scatter plot is generated to visualize the resulting clusters.
 
 ```{r}
 # Load the necessary libraries
@@ -426,23 +611,23 @@ ggplot(principal_components, aes(PC1, PC2, color = cluster)) +
  theme_minimal()
 ```
 
-## t-SNE
+#### t-SNE
 
-#### t-SNE (t-Distributed Stochastic Neighbor Embedding) is perfomed for dimensionality reduction and visualization of the data.
+-   t-SNE (t-Distributed Stochastic Neighbor Embedding) is perfomed for dimensionality reduction and visualization of the data.
 
-## Function:
+Function:
 
-#### Calculates the t-SNE coordinates
+-   Calculates the t-SNE coordinates
 
-#### Creates a dendrogram through hierarchical clustering
+-   Creates a dendrogram through hierarchical clustering
 
-#### Determines the number of clusters visually, assigns data points to clusters
+-   Determines the number of clusters visually, assigns data points to clusters
 
-#### Computes centroids for each cluster
+-   Computes centroids for each cluster
 
-#### Generates scatter plots to visualize the t-SNE coordinates colored by the original variable and cluster assignments
+-   Generates scatter plots to visualize the t-SNE coordinates colored by the original variable and cluster assignments
 
-#### Includes a bar plot showing the cluster frequencies and evaluates clustering quality using silhouette analysis.
+-   Includes a bar plot showing the cluster frequencies and evaluates clustering quality using silhouette analysis.
 
 ```{r}
 tsne <- Rtsne(X)
@@ -475,12 +660,13 @@ centroids = matrix(0, k, 2)
 for (i in unique(cut_avg)) centroids[i, ] <- getCentroid(tsne$Y[cut_avg == i,])
 ```
 
-#### Silhouette Graph: Graph width represents the number of data point; longer length indicates a stronger separation and better-defined clusters.
-#### The lighter the color, the higher the house price. 
+#### Silhouette Graph
+
+-   Graph width represents the number of data point; longer length indicates a stronger separation and better-defined clusters.
+
+-   The lighter the color, the higher the house price.
 
 ```{r}
-tsne_df
-
 ggplot(tsne_df, aes(x=Y.1, y=Y.2, color=y)) +
   geom_point() +
   scale_color_gradientn(colours = heat.colors(10))
@@ -500,13 +686,13 @@ fviz_silhouette(silhouette(cutree(hclust_avg, k = k), dist_mat))
 
 ```
 
-## Baselines
+#### Baselines
 
-#### Sets up empty lists to store RMSE values for baseline models on the training and testing datasets.
+-   Sets up empty lists to store RMSE values for baseline models on the training and testing datasets.
 
-#### Calculate performance metrics (MAE, MAPE, RMSE, MSE, R2) by converting predicted and actual values from transformed to original scale.
+-   Calculate performance metrics (MAE, MAPE, RMSE, MSE, R2) by converting predicted and actual values from transformed to original scale.
 
-#### Focus on data structures and the metrics calculation function.
+-   Focus on data structures and the metrics calculation function.
 
 ```{r}
 baselines_rmse <- list()
@@ -528,19 +714,21 @@ metrics_fusion <- function(y_pred, y) {
 }
 ```
 
-## Linear Regression
+#### Linear Regression
 
-#### Evaluates the performance of a linear regression model for a regression problem.
+-   Evaluates the performance of a linear regression model for a regression problem.
 
-#### Cross-validation used to train the model on the training and validation data.
+-   Cross-validation used to train the model on the training and validation data.
 
-#### Resulting model is applied to make predictions on the validation dataset.
+-   Resulting model is applied to make predictions on the validation dataset.
 
-#### Root mean squared error (RMSE) is calculated as a measure of prediction accuracy for the model on the validation data.
+-   Root mean squared error (RMSE) is calculated as a measure of prediction accuracy for the model on the validation data.
 
-#### Trained linear regression model used to make predictions on the test dataset.
+-   Trained linear regression model used to make predictions on the test dataset.
 
-###3 RMSE is calculated by comparing the predicted values with the actual test values. \#### Stores additional performance metrics (MAE, MAPE, RMSE, MSE, R2) for the linear regression model on the test data.
+-   RMSE is calculated by comparing the predicted values with the actual test values.
+
+-   Stores additional performance metrics (MAE, MAPE, RMSE, MSE, R2) for the linear regression model on the test data.
 
 ```{r}
 linreg_tc <- trainControl(method = "cv", number = 5)
@@ -568,19 +756,19 @@ score_val
 score_test
 ```
 
-## Lasso Regression
+#### Lasso Regression
 
-#### Lasso Regression applied to a regression problem.
+-   Lasso Regression applied to a regression problem.
 
-#### Model trained by using cross-validation and selects the optimal regularization parameter.
+-   Model trained by using cross-validation and selects the optimal regularization parameter.
 
-#### Root mean squared error (RMSE) calculated for the validation set.
+-   Root mean squared error (RMSE) calculated for the validation set.
 
-#### For the test set, target variable predicted by using the trained model, calculates the RMSE
+-   For the test set, target variable predicted by using the trained model, calculates the RMSE
 
-#### Actual performance metrics (MAE, MAPE, RMSE, MSE, R2) computed for the Lasso Regression model on the test set
+-   Actual performance metrics (MAE, MAPE, RMSE, MSE, R2) computed for the Lasso Regression model on the test set
 
-#### Displays the validation RMSE and test RMSE.
+-   Displays the validation RMSE and test RMSE.
 
 ```{r}
 lasso <- cv.glmnet(x = as.matrix(X_train_val), y = y_train_val, alpha = 1)
@@ -600,19 +788,19 @@ score_val
 score_test
 ```
 
-## Ridge Regression
+#### Ridge Regression
 
-#### Ridge Regression applied to a regression problem.
+-   Ridge Regression applied to a regression problem.
 
-#### Model trained by using cross-validation and selects the optimal regularization parameter.
+-   Model trained by using cross-validation and selects the optimal regularization parameter.
 
-#### Root mean squared error (RMSE) calculated for the validation set.
+-   Root mean squared error (RMSE) calculated for the validation set.
 
-#### For the test set, it predicts the target variable using the trained model, calculates the RMSE.
+-   For the test set, it predicts the target variable using the trained model, calculates the RMSE.
 
-#### Actual performance metrics (MAE, MAPE, RMSE, MSE, R2) computed for the Ridge Regression model on the test set.
+-   Actual performance metrics (MAE, MAPE, RMSE, MSE, R2) computed for the Ridge Regression model on the test set.
 
-#### Validation RMSE and test RMSE dsiplayed.
+-   Validation RMSE and test RMSE dsiplayed.
 
 ```{r}
 ridge <- cv.glmnet(x = as.matrix(X_train_val), y = y_train_val, alpha = 0)
@@ -632,19 +820,19 @@ score_val
 score_test
 ```
 
-## Elastic Net
+#### Elastic Net
 
-#### Elastic Net Regression applied to a regression problem.
+-   Elastic Net Regression applied to a regression problem.
 
-#### Cross-validation peformed to select the optimal alpha parameter, which controls the balance between L1 (Lasso) and L2 (Ridge) regularization.
+-   Cross-validation peformed to select the optimal alpha parameter, which controls the balance between L1 (Lasso) and L2 (Ridge) regularization.
 
-#### The root mean squared error (RMSE) calculated for the validation set.
+-   The root mean squared error (RMSE) calculated for the validation set.
 
-#### For the test set, it predicts the target variable using the trained Elastic Net model with the selected alpha value, calculates the RMSE.
+-   For the test set, it predicts the target variable using the trained Elastic Net model with the selected alpha value, calculates the RMSE.
 
-#### Actual performance metrics (MAE, MAPE, RMSE, MSE, R2) computed for the Elastic Net model on the test set.
+-   Actual performance metrics (MAE, MAPE, RMSE, MSE, R2) computed for the Elastic Net model on the test set.
 
-#### Selected alpha, validation RMSE, and test RMSE.
+-   Selected alpha, validation RMSE, and test RMSE.
 
 ```{r}
 results <- data.frame()
@@ -676,13 +864,13 @@ score_val
 score_test
 ```
 
-## K-Nearest Neighbors Regression
+#### K-Nearest Neighbors Regression
 
-#### K-Nearest Neighbors Regression applied to the data
+-   K-Nearest Neighbors Regression applied to the data
 
-#### Calculates the RMSE for validation and test sets, and stores the results.
+-   Calculates the RMSE for validation and test sets, and stores the results.
 
-#### Additional performance metrics computed and displays the RMSE values.
+-   Additional performance metrics computed and displays the RMSE values.
 
 ```{r}
 knn_tc <- trainControl(method = "cv", number = 5)
@@ -710,13 +898,13 @@ score_val
 score_test
 ```
 
-## Support Vector Regression
+#### Support Vector Regression
 
-#### Support Vector Regression (SVR) applied to the data
+-   Support Vector Regression (SVR) applied to the data
 
-### Calculates the RMSE for validation and test sets, and stores the results.
+-   Calculates the RMSE for validation and test sets, and stores the results.
 
-### Additional performance metrics computed and displays the RMSE values.
+-   Additional performance metrics computed and displays the RMSE values.
 
 ```{r}
 svr_tc <- trainControl(method = "cv", number = 5)
@@ -744,13 +932,13 @@ score_val
 score_test
 ```
 
-## Decision Tree
+#### Decision Tree
 
-#### Decision Tree regression applied to the data.
+-   Decision Tree regression applied to the data.
 
-#### Calculates the RMSE for validation and test sets, and stores the results.
+-   Calculates the RMSE for validation and test sets, and stores the results.
 
-#### Additional performance metrics computed and displays the RMSE values.
+-   Additional performance metrics computed and displays the RMSE values.
 
 ```{r}
 dt_tc <- trainControl(method = "cv", number = 5)
@@ -778,11 +966,11 @@ score_val
 score_test
 ```
 
-## Ensemble Learning
+#### Ensemble Learning
 
-#### Empty lists initialized that will be used to store the RMSE values and actual performance metrics for ensemble learning models.
+-   Empty lists initialized that will be used to store the RMSE values and actual performance metrics for ensemble learning models.
 
-#### Empty lists will be populated with values in subsequent steps of the code.
+-   Empty lists will be populated with values in subsequent steps of the code.
 
 ```{r}
 ensemble_rmse <- list()
@@ -792,15 +980,15 @@ ensemble_rmse_test <- list()
 ensemble_actual_metrics_test <- list()
 ```
 
-## Random Forest
+#### Random Forest
 
-#### Random forest algorithm implemented for regression tasks using ensemble learning.
+-   Random forest algorithm implemented for regression tasks using ensemble learning.
 
-#### Rrandom forest model trained on the training and validation data.
+-   Rrandom forest model trained on the training and validation data.
 
-#### Its performance is evaluated using root mean squared error (RMSE) on the validation and test datasets.
+-   Its performance is evaluated using root mean squared error (RMSE) on the validation and test datasets.
 
-#### Calculate feature importance using the random forest model and creates a bar plot to visualize the top 30 important features.
+-   Calculate feature importance using the random forest model and creates a bar plot to visualize the top 30 important features.
 
 ```{r}
 rf_tc <- trainControl(method = "cv", number = 5)
@@ -841,19 +1029,19 @@ ggplot(data = rf_df, aes(x = reorder(Feature, IncNodePurity), y = IncNodePurity)
   coord_flip()
 ```
 
-## Gradient-Boosted Trees
+#### Gradient-Boosted Trees
 
-#### Gradient-Boosted Trees (GBT) using XGBoost, LightGBM, and CatBoost libraries implemented for regression tasks.
+-   Gradient-Boosted Trees (GBT) using XGBoost, LightGBM, and CatBoost libraries implemented for regression tasks.
 
-#### The models are trained on the training and validation data, and their performance is evaluated using RMSE on the validation and test datasets.
+-   The models are trained on the training and validation data, and their performance is evaluated using RMSE on the validation and test datasets.
 
-#### The best hyperparameters are determined through cross-validation, and the models are then used to make predictions on the test data.
+-   The best hyperparameters are determined through cross-validation, and the models are then used to make predictions on the test data.
 
-#### The RMSE scores and other evaluation metrics are recorded for each model.
+-   The RMSE scores and other evaluation metrics are recorded for each model.
 
-#### The feature importance of the GBT model is visualized using a bar chart.
+-   The feature importance of the GBT model is visualized using a bar chart.
 
-#### Code snippet showcases the application of ensemble learning techniques for regression tasks using boosting algorithms.
+-   Code snippet showcases the application of ensemble learning techniques for regression tasks using boosting algorithms.
 
 ```{r}
 dtrain_val <- xgb.DMatrix(data = as.matrix(X_train_val), label = y_train_val)
@@ -969,9 +1157,6 @@ control <- makeMBOControl() %>% setMBOControlTermination(., iters = 10)
 #  control = control,
 #  show.info = TRUE
 #)
-```
-
-```{r}
 # Best parameters
 #run$x
 ```
@@ -1083,17 +1268,17 @@ ggplot(data = catb_df, aes(x = reorder(Feature, Importance), y = Importance)) +
   coord_flip()
 ```
 
-## Association Rule Mining on Housing Characteristics
+#### Association Rule Mining on Housing Characteristics
 
-#### Code snippet performs association rule mining on housing characteristics using the Apriori algorithm.
+-   Code snippet performs association rule mining on housing characteristics using the Apriori algorithm.
 
-#### Converts categorical data into transactions and applies the Apriori algorithm to find frequent itemsets.
+-   Converts categorical data into transactions and applies the Apriori algorithm to find frequent itemsets.
 
-#### Generate association rules using given support and confidence thresholds.
+-   Generate association rules using given support and confidence thresholds.
 
-#### The code includes a dictionary to map column names and values to their corresponding descriptions for better rule interpretation.
+-   The code includes a dictionary to map column names and values to their corresponding descriptions for better rule interpretation.
 
-#### Top ten association rules with their corresponding explanations displayed, including the antecedent (IF) and consequent (THEN) parts along with their descriptions and confidence percentages.
+-   Top ten association rules with their corresponding explanations displayed, including the antecedent (IF) and consequent (THEN) parts along with their descriptions and confidence percentages.
 
 ```{r}
 transactions <- transactions(categorical_data)
@@ -1194,15 +1379,15 @@ for (i in 1:nrow(rules_top_ten_df)) {
 }
 ```
 
-## Stacking
+#### Stacking
 
-#### Stacking is performed by combining the predictions from different models (Random Forest, XGBoost, LightGBM, CatBoost) into a new dataset.
+-   Stacking is performed by combining the predictions from different models (Random Forest, XGBoost, LightGBM, CatBoost) into a new dataset.
 
-#### Linear regression model is trained on the stacked dataset to learn the relationship between ensemble predictions and the actual target values.
+-   Linear regression model is trained on the stacked dataset to learn the relationship between ensemble predictions and the actual target values.
 
-#### Model's predictions on the test dataset are evaluated using root mean squared error (RMSE).
+-   Model's predictions on the test dataset are evaluated using root mean squared error (RMSE).
 
-#### Metrics fusion function is applied to assess the performance of the stacking ensemble.
+-   Metrics fusion function is applied to assess the performance of the stacking ensemble.
 
 ```{r}
 stacked_data <- data.frame(y = y_train_val, prediction_rf = y_pred_train_rf, prediction_xgb = y_pred_train_xgb, prediction_lgb = y_pred_train_lgb, prediction_catboost = y_pred_train_catboost)
@@ -1216,17 +1401,17 @@ ensemble_rmse_test$stacking_score <- rmse(predictions_meta, y_test)
 ensemble_actual_metrics_test$stacking <- metrics_fusion(predictions_meta, y_test)
 ```
 
-## Comparison
+#### Comparison
 
-#### Compares the performance of different models and ensembles using the root mean squared error (RMSE) metric.
+-   Compares the performance of different models and ensembles using the root mean squared error (RMSE) metric.
 
-#### Bar charts created to display the RMSE values, with the x-axis representing the models and the y-axis representing the RMSE.
+-   Bar charts created to display the RMSE values, with the x-axis representing the models and the y-axis representing the RMSE.
 
-#### First set of plots focuses on the baseline models on both the training and test sets.
+-   First set of plots focuses on the baseline models on both the training and test sets.
 
-#### Second set focuses on the ensemble models on both the training and test sets.
+-   Second set focuses on the ensemble models on both the training and test sets.
 
-#### Purpose is to compare the models' performance and determine which ones have the lowest RMSE, indicating better predictive accuracy.
+-   Purpose is to compare the models' performance and determine which ones have the lowest RMSE, indicating better predictive accuracy.
 
 ```{r}
 # Plot RMSE for baseline models
@@ -1285,3 +1470,95 @@ data.frame(t(data.frame(actual_metrics_test))) %>% arrange(desc(r2))
 data.frame(t(data.frame(ensemble_actual_metrics_test))) %>% arrange(desc(r2))
 save(list=ls(), file="assignment_model")
 ```
+
+### Conclusion
+
+-   Several regression models were trained and evaluated on a dataset.
+
+-   The linear regression model, trained using cross-validation, achieved good results with an RMSE score of approximately 0.1408 on the validation dataset and 0.1351 on the test dataset.
+
+-   Lasso regression, which incorporates feature selection, had an average RMSE score of around 0.1654 on validation and 0.1361 on the test dataset.
+
+-   Ridge regression, focusing on reducing multicollinearity, had an average RMSE score of approximately 0.2432 on validation and 0.1434 on the test dataset.
+
+-   Elastic Net regression, combining Lasso and Ridge regularization, performed well with an RMSE score of around 0.1639 on validation and 0.1356 on the test dataset.
+
+-   K-Nearest Neighbors regression achieved moderate performance with an average RMSE score of approximately 0.1832 on validation and 0.1881 on the test dataset.
+
+-   The SVR model, based on support vector regression, consistently performed well with an average RMSE score of 0.1419 on validation and 0.1327 on the test dataset.
+
+-   The decision tree model had an average RMSE score of 0.2999 on validation and 0.2723 on the test dataset.
+
+-   In comparison, the random forest model, an ensemble of decision trees, outperformed the decision tree model with an average RMSE score of 0.1714 on validation and 0.1357 on the test dataset.
+
+-   The random forest model highlighted influential features such as "OverallQual," "GrLivArea," and "YearBuilt" in predicting sale prices.
+
+-   Among the gradient-boosted tree models, XGBoost and LightGBM had similar performance.
+
+-   XGBoost achieved a validation RMSE of 0.1245088 and a test RMSE of 0.1244002, while LightGBM had a validation RMSE of 0.1302412 and a test RMSE of 0.1376078.
+
+-   CatBoost had slightly higher errors with a validation RMSE of 0.1918585 and a test RMSE of 0.1245417.
+
+-   Key factors influencing house prices included OverallQual, GrLivArea, and GarageArea.
+
+-   Overall, the linear regression, Lasso regression, Elastic Net regression, SVR, random forest, XGBoost, and LightGBM models showed promising performance in predicting sale prices.
+
+-   These models can provide valuable insights for decision-making in the real estate market.
+
+-   In the analysis, comparison the performance of baseline models and ensemble models for the given dataset will be occur.
+
+-   The evaluation metric used was Root Mean Squared Error (RMSE), which measures the average prediction error.
+
+-   RMSE provides a measure of the average prediction error in the same units as the target variable.
+
+-   It is useful for comparing different models or evaluating the performance of a single model.
+
+-   Lower RMSE values indicate better predictive accuracy, as they imply smaller average errors between predicted and actual values.
+
+-   Higher RMSE values indicate worse predictive accuracy, as they imply bigger average errors between predicted and actual values.
+
+#### Baseline Models (Training Set):
+
+-   Six models had been used which are Linear regression, Lasso, Ridge, Elasticnet, Knn, Svr and Decision tree.
+
+-   Among the baseline models, linear regression models had the lowest Root Mean Squared Error (RMSE), followed closely by Svr.
+
+-   Knn, Elasticnet, Lasso and Ridge performed relatively well
+
+-   However, Decision Tree had the highest RMSE, indicating poorer predictive performance.
+
+#### Ensemble Models (Training Set):
+
+-   The ensemble models, including Random Forest, XGBoost, LightGBM, and CatBoost, showed improved performance compared to individual baseline models.
+
+-   LightGBM achieved the lowest RMSE on the test set, closely followed by XGBoost.
+
+-   The highest RMSE is catboost and followed by Random Forest, indicating poorer predictive performance.
+
+#### Baseline Models (Test Set):
+
+-   Based on the provided plot and data for the baseline models' RMSE on the test set, Decision tree had the highest Root Mean Squared Error (RMSE) while Svr had the lowest Root Mean Squared Error (RMSE).
+
+-   Decision tree showed the worst predictive performance, closely followed by Knn and Ridge.
+
+-   SVR showed the best predictive performance, closely followed by Linear Regression, ElasticNet and Lasso.
+
+#### Ensemble Models (Test Set):
+
+-   Based on the provided plot and data for the ensemble models' RMSE on the test set, XGBoost and CatBoost achieved the lowest Root Mean Squared Error (RMSE) value.
+
+-   They were closely followed by the stacking model.
+
+-   These three models exhibited the best predictive performance among the ensemble models.
+
+-   LightGBM had the highest RMSE but it also performed relatively well.
+
+-   Random Forest had a slightly higher RMSE compared to the top-performing ensemble models but still demonstrated a good predictive performance.
+
+#### Comparison
+
+-   In baseline models, Svr, Elasticnet, Linear_regression and Lasso showed the best predictive performance.
+
+-   XGBoost, CatBoost, and the stacking model showed the best predictive performance among the ensemble models based on the RMSE metric.
+
+-   These models have the potential to provide more accurate predictions for the target variable on the test set.
