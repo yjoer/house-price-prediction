@@ -1124,16 +1124,16 @@ objective_fn <- makeSingleObjectiveFunction(
 design <- generateDesign(n = 1000, par.set = getParamSet(objective_fn), fun = lhs::randomLHS)
 control <- makeMBOControl() %>% setMBOControlTermination(., iters = 10)
 
-#run <- mbo(
+# run <- mbo(
 #  fun = objective_fn,
 #  design = design,
 #  learner = makeLearner("regr.km", predict.type = "se", covtype = "matern3_2", control = list(trace = FALSE)),
 #  control = control,
 #  show.info = TRUE
-#)
+# )
 
 # Best parameters
-#run$x
+# run$x
 ```
 
 ```{r}
